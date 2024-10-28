@@ -230,6 +230,7 @@ namespace Plugin {
         socketPortInfo.Runs = Core::ResourceMonitor::Instance().Runs();
     }
 
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfo::AudioOutputs(AudioOutputTypes& audioOutputs) const
     {
         Exchange::IDeviceAudioCapabilities::IAudioOutputIterator* audioIt;
@@ -373,6 +374,7 @@ namespace Plugin {
         return (status);
     }
 
+#endif
     uint32_t DeviceInfo::Hdcp(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, CopyProtectionType& copyProtectionType) const
     {
         Exchange::IDeviceVideoCapabilities::CopyProtection hdcp(

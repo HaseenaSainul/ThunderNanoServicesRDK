@@ -152,7 +152,9 @@ namespace Plugin {
         };
         using AudioOutputMap = std::map<Exchange::IDeviceAudioCapabilities::AudioOutput, AudioOutputCapability>;
         using AudioOutputList = std::list<Exchange::IDeviceAudioCapabilities::AudioOutput>;
+#if LEGACY_INTERFACE_SUPPORT
         using AudioOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator>;
+#endif
 
         struct VideoOutputCapability {
             std::list<IDeviceVideoCapabilities::ScreenResolution> Resolutions;
@@ -161,7 +163,9 @@ namespace Plugin {
         };
         using VideoOutputMap = std::map<Exchange::IDeviceVideoCapabilities::VideoOutput, VideoOutputCapability>;
         using VideoOutputList = std::list<Exchange::IDeviceVideoCapabilities::VideoOutput>;
+#if LEGACY_INTERFACE_SUPPORT
         using VideoOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceVideoCapabilities::IVideoOutputIterator>;
+#endif
 
     public:
         DeviceInfoImplementation(const DeviceInfoImplementation&) = delete;
@@ -195,14 +199,22 @@ namespace Plugin {
 
         uint32_t Configure(const PluginHost::IShell* service) override;
 
+#if LEGACY_INTERFACE_SUPPORT
         uint32_t AudioOutputs(IAudioOutputIterator*& res) const override;
         uint32_t AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
         uint32_t MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;
         uint32_t MS12AudioProfiles(const AudioOutput audioOutput, IMS12ProfileIterator*& ms12AudioProfiles) const override;
-
         uint32_t VideoOutputs(IVideoOutputIterator*& videoOutputs) const override;
-        uint32_t DefaultResolution(const VideoOutput videoOutput, ScreenResolution& defaultResolution) const override;
         uint32_t Resolutions(const VideoOutput videoOutput, IScreenResolutionIterator*& resolutions) const override;
+#else
+        uint32_t AudioOutputs(AudioOutput& res) const override;
+        uint32_t AudioCapabilities(const AudioOutput audioOutput, AudioCapability& audioCapabilities) const override;
+        uint32_t MS12Capabilities(const AudioOutput audioOutput, MS12Capability& ms12Capabilities) const override;
+        uint32_t MS12AudioProfiles(const AudioOutput audioOutput, MS12Profile& ms12AudioProfiles) const override;
+        uint32_t VideoOutputs(VideoOutput& videoOutputs) const override;
+        uint32_t Resolutions(const VideoOutput videoOutput, ScreenResolution& resolutions) const override;
+#endif
+        uint32_t DefaultResolution(const VideoOutput videoOutput, ScreenResolution& defaultResolution) const override;
         uint32_t Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const override;
         uint32_t HDR(bool& supportsHDR) const override;
         uint32_t Atmos(bool& supportsAtmos) const override;

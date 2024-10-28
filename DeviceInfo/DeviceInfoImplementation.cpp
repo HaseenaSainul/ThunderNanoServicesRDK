@@ -7,12 +7,13 @@ namespace Plugin {
     using AudioCapabilitiesJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceAudioCapabilities::AudioCapability>>;
     using MS12CapabilitiesJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceAudioCapabilities::MS12Capability>>;
     using MS12ProfilesJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceAudioCapabilities::MS12Profile>>;
+#if LEGACY_INTERFACE_SUPPORT
     using AudioCapabilityIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator>;
     using MS12CapabilityIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator>;
     using MS12ProfileIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator>;
-
-    using ResolutionJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceVideoCapabilities::ScreenResolution>>;
     using ResolutionIteratorImplementation = RPC::IteratorType<Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator>;
+#endif
+    using ResolutionJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceVideoCapabilities::ScreenResolution>>;
 
     uint32_t DeviceInfoImplementation::Configure(const PluginHost::IShell* service)
     {
@@ -71,6 +72,7 @@ namespace Plugin {
         return (Core::ERROR_NONE);
     }
 
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*& audioOutputs) const
     {
         AudioOutputList audioOutputList;
@@ -83,7 +85,26 @@ namespace Plugin {
         audioOutputs = Core::ServiceType<AudioOutputIteratorImplementation>::Create<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator>(audioOutputList);
         return (audioOutputs != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
+#else
+    uint32_t DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::AudioOutput& audioOutputs) const
+    {
+        if (_audioOutputMap.size()) {
 
+            using T = std::underlying_type<Exchange::IDeviceAudioCapabilities::AudioOutput>::type;
+            T intOutputs = 0;
+
+            for (auto output : _audioOutputMap) {
+                intOutputs |= output.first;
+            }
+
+            audioOutputs = static_cast<Exchange::IDeviceAudioCapabilities::AudioOutput>(intOutputs);
+        }
+
+        return (Core::ERROR_NONE); 
+    }
+#endif
+
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
@@ -91,8 +112,30 @@ namespace Plugin {
              audioCapabilities = Core::ServiceType<AudioCapabilityIteratorImplementation>::Create<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator>(index->second.AudioCapabilities);
         }
         return (audioCapabilities != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
-    }
 
+    }
+#else
+    uint32_t DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::AudioCapability& audioCapabilities) const
+    {
+        uint32_t result = Core::ERROR_GENERAL;
+        AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
+        if ((index != _audioOutputMap.end()) && (index->second.AudioCapabilities.size() > 0)) {
+            using T = std::underlying_type<Exchange::IDeviceAudioCapabilities::AudioCapability>::type;
+            T intCapabilities = 0;
+
+            for (auto capability : index->second.AudioCapabilities) {
+                intCapabilities |= capability;
+            }
+
+            audioCapabilities = static_cast<Exchange::IDeviceAudioCapabilities::AudioCapability>(intCapabilities);
+            result = (intCapabilities != 0) ? Core::ERROR_NONE : result;
+        }
+
+        return result;
+    }
+#endif
+
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
@@ -101,7 +144,28 @@ namespace Plugin {
         }
         return (ms12Capabilities != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
+#else
+    uint32_t DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Capability& ms12Capabilities) const
+    {
+        uint32_t result = Core::ERROR_GENERAL;
+        AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
+        if ((index != _audioOutputMap.end()) && (index->second.MS12Capabilities.size() > 0)) {
+            using T = std::underlying_type<Exchange::IDeviceAudioCapabilities::MS12Capability>::type;
+            T intCapabilities = 0;
 
+            for (auto capability : index->second.MS12Capabilities) {
+                intCapabilities |= capability;
+            }
+
+            ms12Capabilities = static_cast<Exchange::IDeviceAudioCapabilities::MS12Capability>(intCapabilities);
+            result = (intCapabilities != 0) ? Core::ERROR_NONE : result;
+        }
+
+        return result;
+    }
+#endif
+
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*& ms12AudioProfiles) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
@@ -110,7 +174,28 @@ namespace Plugin {
         }
         return (ms12AudioProfiles != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
+#else
+    uint32_t DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Profile& ms12Profiles) const
+    {
+        uint32_t result = Core::ERROR_GENERAL;
+        AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
+        if ((index != _audioOutputMap.end()) && (index->second.MS12Profiles.size() > 0)) {
+            using T = std::underlying_type<Exchange::IDeviceAudioCapabilities::MS12Profile>::type;
+            T intProfiles = 0;
 
+            for (auto profile : index->second.MS12Profiles) {
+                intProfiles |= profile;
+            }
+
+            ms12Profiles = static_cast<Exchange::IDeviceAudioCapabilities::MS12Profile>(intProfiles);
+            result = (intProfiles != 0) ? Core::ERROR_NONE : result;
+        }
+
+        return result;
+    }
+#endif
+
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*& videoOutputs) const
     {
         VideoOutputList videoOutputList;
@@ -124,6 +209,24 @@ namespace Plugin {
 
         return (videoOutputs != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
+#else
+    uint32_t DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::VideoOutput& videoOutputs) const
+    {
+        if (_videoOutputMap.size()) {
+
+            using T = std::underlying_type<Exchange::IDeviceVideoCapabilities::VideoOutput>::type;
+            T intOutputs = 0;
+
+            for (auto output : _videoOutputMap) {
+                intOutputs |= output.first;
+            }
+
+            videoOutputs = static_cast<Exchange::IDeviceVideoCapabilities::VideoOutput>(intOutputs);
+        }
+
+        return (Core::ERROR_NONE); 
+    }
+#endif
 
     uint32_t DeviceInfoImplementation::DefaultResolution(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& defaultResolution) const
     {
@@ -135,6 +238,7 @@ namespace Plugin {
         return (Core::ERROR_NONE);
     }
 
+#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*& resolutions) const
     {
         VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
@@ -144,6 +248,26 @@ namespace Plugin {
 
         return (resolutions != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
+#else
+    uint32_t DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& resolutions) const
+    {
+        uint32_t result = Core::ERROR_GENERAL;
+        VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
+        if ((index != _videoOutputMap.end()) && (index->second.Resolutions.size() > 0)) {
+            using T = std::underlying_type<Exchange::IDeviceVideoCapabilities::ScreenResolution>::type;
+            T intResolutions = 0;
+
+            for (auto resolution : index->second.Resolutions) {
+                intResolutions |= resolution;
+            }
+
+            resolutions = static_cast<Exchange::IDeviceVideoCapabilities::ScreenResolution>(intResolutions);
+            result = (intResolutions != 0) ? Core::ERROR_NONE : result;
+        }
+
+        return result;
+    }
+#endif
 
     uint32_t DeviceInfoImplementation::Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const
     {

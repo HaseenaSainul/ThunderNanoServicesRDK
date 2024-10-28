@@ -40,10 +40,9 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     DeviceInfo.cpp
-    DeviceInfoJsonRpc.cpp
     DeviceInfoImplementation.cpp
     Module.cpp)
-
+#    DeviceInfoJsonRpc.cpp
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
