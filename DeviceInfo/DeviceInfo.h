@@ -22,32 +22,19 @@
 
 #include "Module.h"
 #include <interfaces/IDeviceInfo.h>
+#include <interfaces/json/JDeviceCapabilities.h>
 #include <interfaces/json/JsonData_DeviceInfo.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
+    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+#else
+    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::JSONRPC::IDeviceCapabilities {
+#endif
+
     public:
-        class Data : public Core::JSON::Container {
-        public:
-            Data()
-                : Core::JSON::Container()
-                , Addresses()
-                , SystemInfo()
-            {
-                Add(_T("addresses"), &Addresses);
-                Add(_T("systeminfo"), &SystemInfo);
-                Add(_T("sockets"), &Sockets);
-            }
-
-            ~Data() override = default;
-
-        public:
-            Core::JSON::ArrayType<JsonData::DeviceInfo::AddressesData> Addresses;
-            JsonData::DeviceInfo::SysteminfoData SystemInfo;
-            JsonData::DeviceInfo::SocketinfoData Sockets;
-        };
 
     private:
         class Notification : public PluginHost::ISubSystem::INotification, public RPC::IRemoteConnection::INotification {
@@ -106,23 +93,6 @@ namespace Plugin {
             Core::WorkerPool::JobType<Job> _job;
         };
 
-    private:
-        uint32_t addresses(const Core::JSON::String&, Core::JSON::ArrayType<JsonData::DeviceInfo::AddressesData>& response)
-        {
-            AddressInfo(response);
-            return (Core::ERROR_NONE);
-        }
-        uint32_t system(const Core::JSON::String&, JsonData::DeviceInfo::SysteminfoData& response)
-        {
-            SysInfo(response);
-            return (Core::ERROR_NONE);
-        }
-        uint32_t sockets(const Core::JSON::String&, JsonData::DeviceInfo::SocketinfoData& response)
-        {
-            SocketPortInfo(response);
-            return (Core::ERROR_NONE);
-        }
-
     public:
         DeviceInfo(const DeviceInfo&) = delete;
         DeviceInfo& operator=(const DeviceInfo&) = delete;
@@ -144,7 +114,6 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(DeviceInfo)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-        INTERFACE_ENTRY(PluginHost::IWeb)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(Exchange::IDeviceInfo, _deviceInfo)
         INTERFACE_AGGREGATE(Exchange::IDeviceAudioCapabilities, _deviceAudioCapabilityInterface)
@@ -158,12 +127,8 @@ namespace Plugin {
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
 
-        //   IWeb methods
-        // -------------------------------------------------------------------------------------------------------
-        virtual void Inbound(Web::Request& request) override;
-        virtual Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
-
     private:
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         // JsonRpc
         void RegisterAll();
         void UnregisterAll();
@@ -200,9 +165,6 @@ namespace Plugin {
         void VideoCapabilitiesInfo(JsonData::DeviceInfo::DevicevideocapabilitiesData& response) const;
         void DeviceMetaData(JsonData::DeviceInfo::DeviceinfoData& response) const;
 
-        void UpdateDeviceIdentifier();
-        void Deactivated(RPC::IRemoteConnection* connection);
-
         using VideoOutputTypes = Core::JSON::ArrayType<Core::JSON::EnumType<JsonData::DeviceInfo::VideodisplayType>>;
         using ScreenResolutionType = Core::JSON::EnumType<JsonData::DeviceInfo::Output_resolutionType>;
         using ScreenResolutionTypes = Core::JSON::ArrayType<ScreenResolutionType>;
@@ -230,6 +192,20 @@ namespace Plugin {
             }
             return status;
         }
+#else
+
+        Core::hresult FirmwareVersion(Exchange::JSONRPC::IDeviceCapabilities::FirmwareInfo& value) const override;
+        Core::hresult DeviceData(Exchange::JSONRPC::IDeviceCapabilities::Device& value) const override;
+        Core::hresult SystemInfo(Exchange::JSONRPC::IDeviceCapabilities::System& value) const override;
+        Core::hresult SocketInfo(Exchange::JSONRPC::IDeviceCapabilities::Socket& value) const override;
+        Core::hresult Addresses(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const override;
+        Core::hresult DeviceAudioCapabilities(
+            Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator*& audioOutputCaps) const override;
+        Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec,
+            Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator*& videoOutputCaps) const override;
+#endif
+        void UpdateDeviceIdentifier();
+        void Deactivated(RPC::IRemoteConnection* connection);
 
     private:
         uint8_t _skipURL;

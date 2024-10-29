@@ -36,8 +36,6 @@ namespace Plugin {
         );
     }
 
-    static Core::ProxyPoolType<Web::JSONBodyType<DeviceInfo::Data>> jsonResponseFactory(4);
-
     /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
     {
         ASSERT(_service == nullptr);
@@ -75,7 +73,9 @@ namespace Plugin {
                     if (_deviceVideoCapabilityInterface == nullptr) {
                         message = _T("DeviceInfo Video Capabilities Interface could not be instantiated");
                     } else {
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                         RegisterAll();
+#endif
                     }
                 }
             }
@@ -105,7 +105,9 @@ namespace Plugin {
                     _deviceAudioCapabilityInterface = nullptr;
                 }
                 if (_deviceVideoCapabilityInterface != nullptr) {
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                     UnregisterAll();
+#endif
                     _deviceVideoCapabilityInterface->Release();
                     _deviceVideoCapabilityInterface = nullptr;
                 }
@@ -137,52 +139,7 @@ namespace Plugin {
         return (string());
     }
 
-    /* virtual */ void DeviceInfo::Inbound(Web::Request& /* request */)
-    {
-    }
-
-    /* virtual */ Core::ProxyType<Web::Response> DeviceInfo::Process(const Web::Request& request)
-    {
-        ASSERT(_skipURL <= request.Path.length());
-
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-
-        // By default, we assume everything works..
-        result->ErrorCode = Web::STATUS_OK;
-        result->Message = "OK";
-
-        // <GET> - currently, only the GET command is supported, returning system info
-        if (request.Verb == Web::Request::HTTP_GET) {
-
-            Core::ProxyType<Web::JSONBodyType<Data>> response(jsonResponseFactory.Element());
-
-            Core::TextSegmentIterator index(Core::TextFragment(request.Path, _skipURL, static_cast<uint32_t>(request.Path.length()) - _skipURL), false, '/');
-
-            // Always skip the first one, it is an empty part because we start with a '/' if there are more parameters.
-            index.Next();
-
-            if (index.Next() == false) {
-                AddressInfo(response->Addresses);
-                SysInfo(response->SystemInfo);
-                SocketPortInfo(response->Sockets);
-            } else if (index.Current() == "Adresses") {
-                AddressInfo(response->Addresses);
-            } else if (index.Current() == "System") {
-                SysInfo(response->SystemInfo);
-            } else if (index.Current() == "Sockets") {
-                SocketPortInfo(response->Sockets);
-            }
-            // TODO RB: I guess we should do something here to return other info (e.g. time) as well.
-
-            result->ContentType = Web::MIMETypes::MIME_JSON;
-            result->Body(Core::ProxyType<Web::IBody>(response));
-        } else {
-            result->ErrorCode = Web::STATUS_BAD_REQUEST;
-            result->Message = _T("Unsupported request for the [DeviceInfo] service.");
-        }
-
-        return result;
-    }
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 
     void DeviceInfo::SysInfo(JsonData::DeviceInfo::SysteminfoData& systemInfo) const
     {
@@ -230,7 +187,6 @@ namespace Plugin {
         socketPortInfo.Runs = Core::ResourceMonitor::Instance().Runs();
     }
 
-#if LEGACY_INTERFACE_SUPPORT
     uint32_t DeviceInfo::AudioOutputs(AudioOutputTypes& audioOutputs) const
     {
         Exchange::IDeviceAudioCapabilities::IAudioOutputIterator* audioIt;
@@ -374,7 +330,6 @@ namespace Plugin {
         return (status);
     }
 
-#endif
     uint32_t DeviceInfo::Hdcp(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, CopyProtectionType& copyProtectionType) const
     {
         Exchange::IDeviceVideoCapabilities::CopyProtection hdcp(
@@ -471,6 +426,204 @@ namespace Plugin {
             response.Sku = localresult;
         }
     }
+
+#else
+    Core::hresult DeviceInfo::FirmwareVersion(Exchange::JSONRPC::IDeviceCapabilities::FirmwareInfo& value VARIABLE_IS_NOT_USED) const
+    {
+        return Core::ERROR_UNAVAILABLE;
+    }
+
+    Core::hresult DeviceInfo::DeviceData(Exchange::JSONRPC::IDeviceCapabilities::Device& device) const
+    {
+        ASSERT(_deviceInfo != nullptr);
+        string value;
+
+        if (_deviceInfo->DeviceType(value) == Core::ERROR_NONE) {
+            device.deviceType = value;
+        }
+        if (_deviceInfo->DistributorId(value) == Core::ERROR_NONE) {
+            device.distributorId = value;
+        }
+        if (_deviceInfo->FriendlyName(value) == Core::ERROR_NONE) {
+            device.friendlyName = value;
+        }
+        if (_deviceInfo->Make(value) == Core::ERROR_NONE) {
+            device.make = value;
+        }
+        if (_deviceInfo->ModelName(value) == Core::ERROR_NONE) {
+            device.modelName = value;
+        }
+        uint16_t year = 0;
+        if (_deviceInfo->ModelYear(year) == Core::ERROR_NONE) {
+            device.modelYear = year;
+        }
+        if (_deviceInfo->PlatformName(value) == Core::ERROR_NONE) {
+            device.platformName = year;
+        }
+
+        if (_deviceInfo->SerialNumber(value) == Core::ERROR_NONE) {
+            device.serialNumber = value;
+        }
+
+        if (_deviceInfo->Sku(value) == Core::ERROR_NONE) {
+            device.sku = value;
+        }
+
+        return Core::ERROR_NONE;
+    }
+
+    Core::hresult DeviceInfo::SystemInfo(Exchange::JSONRPC::IDeviceCapabilities::System& system) const
+    {
+        Core::SystemInfo& singleton(Core::SystemInfo::Instance());
+
+        system.time = Core::Time::Now().ToRFC1123(true);
+        system.version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
+        system.uptime = singleton.GetUpTime();
+        system.freeRAM = singleton.GetFreeRam();
+        system.totalRAM = singleton.GetTotalRam();
+        system.deviceName = singleton.GetHostName();
+        system.cpuLoad = Core::NumberType<uint32_t>(static_cast<uint32_t>(singleton.GetCpuLoad())).Text();
+
+        _adminLock.Lock();
+        system.serialNumber = _deviceId;
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+
+    Core::hresult DeviceInfo::SocketInfo(Exchange::JSONRPC::IDeviceCapabilities::Socket& socket) const
+    {
+        socket.runs = Core::ResourceMonitor::Instance().Runs();
+        return Core::ERROR_NONE;
+    }
+
+    Core::hresult DeviceInfo::Addresses(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const
+    {
+        // Get the point of entry on Thunder..
+        Core::AdapterIterator interfaces;
+        std::list<Exchange::JSONRPC::IDeviceCapabilities::Address> addresses;
+
+        while (interfaces.Next() == true) {
+            Exchange::JSONRPC::IDeviceCapabilities::Address address;
+            address.name = interfaces.Name();
+            address.mac = interfaces.MACAddress(':');
+
+            // get an interface with a public IP address, then we will have a proper MAC address..
+            Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
+
+            while (selectedNode.Next() == true) {
+                //FIXME 
+            }
+
+            addresses.push_back(address);
+        }
+
+        if (addresses.empty() == false) {
+            using Iterator = Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator;
+            ip = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(addresses);
+        }
+
+        return (ip != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+    }
+
+    Core::hresult DeviceInfo::DeviceAudioCapabilities(
+        Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator*& audioOutputCaps) const
+    {
+        Exchange::IDeviceAudioCapabilities::AudioOutput audioOutputs; 
+        if ((_deviceAudioCapabilityInterface->AudioOutputs(audioOutputs) == Core::ERROR_NONE) &&
+            ( audioOutputs != 0)) {
+            uint8_t bit = 0x1;
+            uint8_t value = audioOutputs;
+            std::list<Exchange::JSONRPC::IDeviceCapabilities::AudioOutputCaps> audioOutputCapsList;
+            while (value != 0) {
+                if ((bit & value) != 0) {
+
+                    Exchange::JSONRPC::IDeviceCapabilities::AudioOutputCaps audioOutputCap;
+                    Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput = static_cast<Exchange::IDeviceAudioCapabilities::AudioOutput>(bit);
+                    audioOutputCap.audioOutput = audioOutput;
+
+                    Exchange::IDeviceAudioCapabilities::AudioCapability audioCapabilities = Exchange::IDeviceAudioCapabilities::AUDIOCAPABILITY_NONE;
+                    if ((_deviceAudioCapabilityInterface->AudioCapabilities(audioOutput, audioCapabilities) == Core::ERROR_NONE) &&
+                        (audioCapabilities != 0)) {
+                        audioOutputCap.audioCapabilities = audioCapabilities;
+                    }
+
+                    Exchange::IDeviceAudioCapabilities::MS12Capability ms12Capabilities = Exchange::IDeviceAudioCapabilities::MS12CAPABILITY_NONE;
+                    if (( _deviceAudioCapabilityInterface->MS12Capabilities(audioOutput, ms12Capabilities) != Core::ERROR_NONE) &&
+                        (ms12Capabilities != 0)) {
+                        audioOutputCap.ms12Capabilities = ms12Capabilities;
+                    }
+
+                    Exchange::IDeviceAudioCapabilities::MS12Profile ms12Profiles = Exchange::IDeviceAudioCapabilities::MS12PROFILE_NONE;
+                    if ((_deviceAudioCapabilityInterface->MS12AudioProfiles(audioOutput, ms12Profiles) != Core::ERROR_NONE) &&
+                        (ms12Profiles != 0)) {
+                        audioOutputCap.ms12Profiles = ms12Profiles;
+                    }
+
+                    value &= ~bit;
+                    audioOutputCapsList.push_back(audioOutputCap);
+                }
+                bit = (bit << 1);
+            }
+
+            if (audioOutputCapsList.empty() == false) {
+                using Iterator = Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator;
+                audioOutputCaps = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(audioOutputCapsList);
+            }
+        }
+
+        return (audioOutputCaps != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+    }
+
+    Core::hresult DeviceInfo::DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec,
+        Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator*& videoOutputCaps) const
+    {
+        ASSERT(_deviceVideoCapabilityInterface != nullptr);
+
+        _deviceVideoCapabilityInterface->HDR(hdr);
+        _deviceVideoCapabilityInterface->Atmos(atmos);
+        _deviceVideoCapabilityInterface->CEC(cec);
+        _deviceVideoCapabilityInterface->HostEDID(edid);
+
+        Exchange::IDeviceVideoCapabilities::VideoOutput videoOutputs;
+        if ((_deviceVideoCapabilityInterface->VideoOutputs(videoOutputs) == Core::ERROR_NONE) &&
+            ( videoOutputs != 0)) {
+            uint8_t bit = 0x1;
+            uint8_t value = videoOutputs;
+            std::list<Exchange::JSONRPC::IDeviceCapabilities::VideoOutputCaps> videoOutputCapsList;
+            while (value != 0) {
+                if ((bit & value) != 0) {
+                    Exchange::JSONRPC::IDeviceCapabilities::VideoOutputCaps videoOutputCap;
+                    Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput = static_cast<Exchange::IDeviceVideoCapabilities::VideoOutput>(bit);
+                    videoOutputCap.videoOutput = videoOutput;
+
+                    Exchange::IDeviceVideoCapabilities::CopyProtection hdcp = Exchange::IDeviceVideoCapabilities::HDCP_UNAVAILABLE;
+                    if (( _deviceVideoCapabilityInterface->Hdcp(videoOutput, hdcp) == Core::ERROR_NONE) &&
+                        (hdcp != 0)) {
+                        videoOutputCap.hdcp = hdcp;
+                    }
+                    Exchange::IDeviceVideoCapabilities::ScreenResolution defaultResolution = Exchange::IDeviceVideoCapabilities::ScreenResolution_Unknown;
+                    if (( _deviceVideoCapabilityInterface->DefaultResolution(videoOutput, defaultResolution) == Core::ERROR_NONE) &&
+                        (defaultResolution != 0)) {
+                        videoOutputCap.defaultResolution = defaultResolution;
+                    }
+                    Exchange::IDeviceVideoCapabilities::ScreenResolution resolutions = Exchange::IDeviceVideoCapabilities::ScreenResolution_Unknown;
+                    if (( _deviceVideoCapabilityInterface->Resolutions(videoOutput, resolutions) == Core::ERROR_NONE) &&
+                        (resolutions != 0)) {
+                        videoOutputCap.outputResolutions = resolutions;
+                    }
+                    value &= ~bit;
+                    videoOutputCapsList.push_back(videoOutputCap);
+                }
+                bit = (bit << 1);
+            }
+            if (videoOutputCapsList.empty() == false) {
+                using Iterator = Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator;
+                videoOutputCaps = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(videoOutputCapsList);
+            }
+        }
+        return (videoOutputCaps != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+    }
+#endif
 
     void DeviceInfo::UpdateDeviceIdentifier()
     {

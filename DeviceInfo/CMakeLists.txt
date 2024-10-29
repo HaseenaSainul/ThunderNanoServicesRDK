@@ -42,7 +42,14 @@ add_library(${MODULE_NAME} SHARED
     DeviceInfo.cpp
     DeviceInfoImplementation.cpp
     Module.cpp)
-#    DeviceInfoJsonRpc.cpp
+
+if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        DeviceInfoJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+endif()
+
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
