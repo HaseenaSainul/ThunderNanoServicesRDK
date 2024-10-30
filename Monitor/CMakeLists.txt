@@ -82,8 +82,14 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED 
     Monitor.cpp
-    MonitorJsonRpc.cpp
     Module.cpp)
+
+if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        MonitorJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11

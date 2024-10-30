@@ -22,6 +22,7 @@
 
 #include "Module.h"
 #include <interfaces/IMemory.h>
+#include <interfaces/IMonitor.h>
 #include <interfaces/json/JsonData_Monitor.h>
 #include <limits>
 #include <string>
@@ -34,7 +35,11 @@ static uint32_t gcd(uint32_t a, uint32_t b)
 namespace Thunder {
 namespace Plugin {
 
-    class Monitor : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+    class Monitor : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+#else
+    class Monitor : public PluginHost::IPlugin, public Exchange::IMonitor {
+#endif
     private:
         class RestartInfo : public Core::JSON::Container {
         public:
@@ -145,6 +150,7 @@ namespace Plugin {
             Core::MeasurementType<uint8_t> _process;
         };
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         class Data : public Core::JSON::Container {
         public:
             class MetaData : public Core::JSON::Container {
@@ -368,6 +374,7 @@ namespace Plugin {
             Core::JSON::String Observable;
             RestartInfo Restart;
         };
+#endif
 
     private:
         Monitor(const Monitor&);
@@ -777,11 +784,15 @@ POP_WARNING()
                             TRACE(Trace::Fatal, (_T("Giving up restarting of %s: Failed more than %d times within %d seconds."), callsign.c_str(), restartlimit, restartwindow));
                             const string message("{\"callsign\": \"" + callsign + "\", \"action\": \"Restart\", \"reason\":\"" + (std::to_string(restartlimit)).c_str() + " Attempts Failed within the restart window\"}");
                             _service->Notify(message);
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "StoppedRestaring", std::to_string(index->second.RestartLimit()) + " attempts failed within the restart window");
+#endif
                         } else {
                             const string message("{\"callsign\": \"" + callsign + "\", \"action\": \"Activate\", \"reason\": \"Automatic\" }");
                             _service->Notify(message);
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "Activate", "Automatic");
+#endif
                             TRACE(Trace::Error, (_T("Restarting %s again because we detected it misbehaved."), callsign.c_str()));
                             Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(service, PluginHost::IShell::ACTIVATED, PluginHost::IShell::AUTOMATIC));
                         }
@@ -791,6 +802,7 @@ POP_WARNING()
             void Unavailable(const string&, PluginHost::IShell*) override
             {
             }
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             void Snapshot(Core::JSON::ArrayType<Monitor::Data>& snapshot) const
             {
                 MonitorObjectContainer::const_iterator element(_monitor.cbegin());
@@ -862,7 +874,44 @@ POP_WARNING()
                     }
                 }
             }
+#else
+            void Snapshot(const string& callsign, std::list<Exchange::IMonitor::Statistics>& statistics) const
+            {
+                if (callsign.empty() == false) {
+                    auto element = _monitor.find(callsign);
+                    if (element != _monitor.end()) {
+                        Statistics(statistics, element->first, element->second);
+                    }
+                } else {
+                    for (auto& element : _monitor) {
+                        Statistics(statistics, element.first, element.second);
+                    }
+                }
+            }
 
+            void Statistics(std::list<Exchange::IMonitor::Statistics>& statistics, const string& callsign, const MonitorObject& object) const
+            {
+                const MetaData& metaData = object.Measurement();
+                Exchange::IMonitor::Statistics info;
+                info.observable = callsign;
+
+                if (object.HasRestartAllowed()) {
+                    info.restart.limit = object.RestartLimit();
+                    info.restart.window = object.RestartWindow();
+                }
+
+                if (metaData.HasMeasurements() == true) {
+                    translate(metaData.Allocated(), &info.measurements.allocated);
+                    translate(metaData.Resident(), &info.measurements.resident);
+                    translate(metaData.Shared(), &info.measurements.shared);
+                    translate(metaData.Process(), &info.measurements.process);
+                }
+                info.measurements.operational = object.Operational();
+                info.measurements.count = metaData.Allocated().Measurements();
+
+                statistics.push_back(info);
+            }
+#endif
             bool Reset(const string& name, Monitor::MetaData& result, bool& operational)
             {
                 bool found = false;
@@ -929,7 +978,9 @@ POP_WARNING()
 
                                 _service->Notify(message);
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                                 _parent.event_action(plugin->Callsign(), "Deactivate", why.Data());
+#endif
 
                                 Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(plugin, PluginHost::IShell::DEACTIVATED, why.Value()));
 
@@ -960,6 +1011,7 @@ POP_WARNING()
 
         private:
             template <typename T>
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             void translate(const Core::MeasurementType<T>& from, JsonData::Monitor::MeasurementInfo* to) const
             {
                 ASSERT(to != nullptr);
@@ -968,6 +1020,16 @@ POP_WARNING()
                 to->Average = from.Average();
                 to->Last = from.Last();
             }
+#else
+            void translate(const Core::MeasurementType<T>& from, Exchange::IMonitor::Measurement* to) const
+            {
+                ASSERT(to != nullptr);
+                to->min = from.Min();
+                to->max = from.Max();
+                to->average = from.Average();
+                to->last = from.Last();
+            }
+#endif
 
         private:
 
@@ -991,8 +1053,11 @@ POP_WARNING()
 
         BEGIN_INTERFACE_MAP(Monitor)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-        INTERFACE_ENTRY(PluginHost::IWeb)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
+#else
+        INTERFACE_ENTRY(Exchange::IMonitor)
+#endif
         END_INTERFACE_MAP
 
     public:
@@ -1017,17 +1082,12 @@ POP_WARNING()
         // to this plugin. This Metadata can be used by the MetData plugin to publish this information to the ouside world.
         string Information() const override;
 
-        //  IWeb methods
-        // -------------------------------------------------------------------------------------------------------
-        // Whenever a request is received, it might carry some additional data in the body. This method allows
-        // the plugin to attach a deserializable data object (ref counted) to be loaded with any potential found
-        // in the body of the request.
-        void Inbound(Web::Request& request) override;
-
-        // If everything is received correctly, the request is passed on to us, through a thread from the thread pool, to
-        // do our thing and to return the result in the response object. Here the actual specific module work,
-        // based on a a request is handled.
-        Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        uint32_t RestartLimits(const Exchange::IMonitor::RestartLimitsInfo& params) override;
+        uint32_t ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics) override;
+        uint32_t Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const override;
+    private:
+#endif
 
     private:
         uint8_t _skipURL;
@@ -1035,12 +1095,15 @@ POP_WARNING()
         Core::SinkType<MonitorObjects> _monitor;
 
     private:
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         void RegisterAll();
         void UnregisterAll();
         uint32_t endpoint_restartlimits(const JsonData::Monitor::RestartlimitsParamsData& params);
         uint32_t endpoint_resetstats(const JsonData::Monitor::ResetstatsParamsData& params, JsonData::Monitor::InfoInfo& response);
         uint32_t get_status(const string& index, Core::JSON::ArrayType<JsonData::Monitor::InfoInfo>& response) const;
         void event_action(const string& callsign, const string& action, const string& reason);
+#endif
+
     };
 }
 }
