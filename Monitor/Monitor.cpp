@@ -80,14 +80,14 @@ namespace Plugin {
     }
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t Monitor::RestartLimits(const Exchange::IMonitor::RestartLimitsInfo& params)
+    /* virtual */ uint32_t Monitor::RestartLimits(const Exchange::IMonitor::RestartLimitsInfo& params)
     {
         _monitor.Update(params.callsign, params.restart.window, params.restart.limit);
 
         return Core::ERROR_NONE;
     }
 
-    uint32_t Monitor::ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics)
+    /* virtual */ uint32_t Monitor::ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics)
     {
         std::list<Exchange::IMonitor::Statistics> statisticsList;
 	_monitor.Snapshot(callsign, statisticsList);
@@ -98,7 +98,7 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
-    uint32_t Monitor::Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const
+    /* virtual */ uint32_t Monitor::Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const
     {
         std::list<Exchange::IMonitor::Statistics> statisticsList;
 	_monitor.Snapshot(callsign, statisticsList);

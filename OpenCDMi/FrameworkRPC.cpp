@@ -91,7 +91,12 @@ namespace Plugin {
 
     static const TCHAR BufferFileName[] = _T("ocdmbuffer.");
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
     class OCDMImplementation : public Exchange::IContentDecryption {
+#else
+    class OCDMImplementation : public Exchange::IContentDecryption, public Exchange::IOCDM {
+#endif
+
         static const uint16_t OcdmAccessMode = (Core::File::USER_READ | Core::File::USER_WRITE |
                                                 Core::File::GROUP_WRITE | Core::File::GROUP_READ);
 
@@ -1532,12 +1537,46 @@ POP_WARNING()
                 index++;
             }
         }
+
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        uint32_t Systems(Exchange::IOCDM::IDrmIterator*& drms) const
+        {
+            std::list<Exchange::IOCDM::Drm> drmList;
+            RPC::IStringIterator* drmsIter(Systems());
+            if (drmsIter != nullptr) {
+                string element;
+                IOCDM::Drm drm;
+                while (drmsIter->Next(element) == true) {
+                    drm.name = element;
+                }
+                drmList.push_back(drm);
+/*                KeySystems(element, drm.Keysystems);
+                response.Add(drm);*/
+            }
+            drmsIter->Release();
+            if (drmList.empty() != false) {
+                using Iterator = Exchange::IOCDM::IDrmIterator;
+
+                drms = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(drmList);
+            }
+            return (drms != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
+        }
+
+        uint32_t Designators(const string& drm, Exchange::IOCDM::IStringIterator*& keys) const
+        {
+             keys = Designators(drm);
+             return ((keys != nullptr) ? Core::ERROR_NONE : Core::ERROR_BAD_REQUEST);
+        }
+#endif
+
+
     public:
         // -------------------------------------------------------------------------------------------------------------
         // IDecryption methods
         // -------------------------------------------------------------------------------------------------------------
         BEGIN_INTERFACE_MAP(OCDMImplementation)
         INTERFACE_ENTRY(Exchange::IContentDecryption)
+        INTERFACE_ENTRY(Exchange::IOCDM)
         END_INTERFACE_MAP
 
     private:

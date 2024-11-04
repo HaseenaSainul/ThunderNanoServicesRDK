@@ -22,15 +22,19 @@
 #include "Module.h"
 #include "AccessControlList.h"
 
+#include <interfaces/ISecurityAgent.h>
 #include <interfaces/json/JsonData_SecurityAgent.h>
 
 namespace Thunder {
 namespace Plugin {
 
     class SecurityAgent : public PluginHost::IAuthenticate,
-                            public PluginHost::IPlugin,
-                            public PluginHost::JSONRPC,
-                            public PluginHost::IWeb {
+                          public PluginHost::IPlugin,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                          public Exchange::ISecurityAgent,
+#endif
+                          public PluginHost::JSONRPC {
+
     private:
         class TokenDispatcher : public RPC::Communicator {
         public:
@@ -168,40 +172,35 @@ namespace Plugin {
         // Build QueryInterface implementation, specifying all possible interfaces to be returned.
         BEGIN_INTERFACE_MAP(SecurityAgent)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-        INTERFACE_ENTRY(PluginHost::IWeb)
         INTERFACE_ENTRY(PluginHost::IAuthenticate)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
+#else
+        INTERFACE_ENTRY(Exchange::ISecurityAgent)
+#endif
         END_INTERFACE_MAP
 
     public:
         //   IPlugin methods
         // -------------------------------------------------------------------------------------------------------
-        virtual const string Initialize(PluginHost::IShell* service) override;
-        virtual void Deinitialize(PluginHost::IShell* service) override;
-        virtual string Information() const override;
+        const string Initialize(PluginHost::IShell* service) override;
+        void Deinitialize(PluginHost::IShell* service) override;
+        string Information() const override;
 
         //   IAuthenticate methods
         // -------------------------------------------------------------------------------------------------------
-        virtual uint32_t CreateToken(const uint16_t length, const uint8_t buffer[], string& token);
-        virtual PluginHost::ISecurity* Officer(const string& token);
+        uint32_t CreateToken(const uint16_t length, const uint8_t buffer[], string& token) override;
+        PluginHost::ISecurity* Officer(const string& token) override;
 
-        //   IWeb methods
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        // ISecurityAgent methods
         // -------------------------------------------------------------------------------------------------------
-        //! Whenever a request is received, it might carry some additional data in the body. This method allows
-        //! the plugin to attach a deserializable data object (ref counted) to be loaded with any potential found
-        //! in the body of the request.
-        //! @}
-        virtual void Inbound(Web::Request& request);
-
-        //! @{
-        //! ==================================== CALLED ON THREADPOOL THREAD ======================================
-        //! If everything is received correctly, the request is passed to us, on a thread from the thread pool, to
-        //! do our thing and to return the result in the response object. Here the actual specific module work,
-        //! based on a a request is handled.
-        //! @}
-        virtual Core::ProxyType<Web::Response> Process(const Web::Request& request);
+        uint32_t CreateToken(const Exchange::ISecurityAgent::TokenInput& input, string& token) override;
+        uint32_t Validate(const string& token, bool& valid) override;
+#endif
 
     private:
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         //   JsonRPC methods
         // -------------------------------------------------------------------------------------------------------
         void RegisterAll();
@@ -210,6 +209,7 @@ namespace Plugin {
         uint32_t endpoint_createtoken(const JsonData::SecurityAgent::CreatetokenParamsData& params, JsonData::SecurityAgent::CreatetokenResultInfo& response);
 #endif // DEBUG
         uint32_t endpoint_validate(const JsonData::SecurityAgent::CreatetokenResultInfo& params, JsonData::SecurityAgent::ValidateResultData& response);
+#endif
 
     private:
         AccessControlList _acl;

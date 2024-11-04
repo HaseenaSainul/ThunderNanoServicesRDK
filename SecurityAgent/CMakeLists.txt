@@ -48,9 +48,15 @@ add_library(${MODULE_NAME} SHARED
     AccessControlList.cpp
     SecurityAgent.cpp
     SecurityContext.cpp
-    SecurityAgentJsonRpc.cpp
     ${SECAPI_RELATED_SOURCES}
     Module.cpp)
+
+if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        SecurityAgentJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+endif()
 
 # Following compilation flag is added as SecurityAgent plugin uses regex that 
 # prevents the plugin from unloading from memory after deactivation.

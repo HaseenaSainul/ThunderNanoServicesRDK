@@ -80,12 +80,16 @@ namespace Plugin {
         , _engine()
         , _testtoken()
     {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         RegisterAll();
+#endif
     }
 
     /* virtual */ SecurityAgent::~SecurityAgent()
     {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         UnregisterAll();
+#endif
     }
 
     /* virtual */ const string SecurityAgent::Initialize(PluginHost::IShell* service)
@@ -167,9 +171,9 @@ namespace Plugin {
                 }
             }
         }
-  	else {
+        else {
             message = _T("SecurityAgent failed to create TokenDispatcher");
-	}
+        }
 
         // On success return empty, to indicate there is no error text.
         return message;
@@ -247,76 +251,48 @@ namespace Plugin {
         return (result);
     }
 
-    /* virtual */ void SecurityAgent::Inbound(Web::Request& request)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+    /* virtual */ uint32_t SecurityAgent::CreateToken(const Exchange::ISecurityAgent::TokenInput& input, string& token)
     {
-        request.Body(textFactory.Element());
+        uint32_t result = Core::ERROR_NONE;
+
+        JsonData::SecurityAgent::CreateTokenParamsData::TokenInputData payload;
+        payload.Url = input.url;
+        payload.User = input.user;
+        payload.Hash = input.hash;
+        string strPayload;
+        payload.ToString(strPayload);
+
+        if (CreateToken(static_cast<uint16_t>(strPayload.length()), reinterpret_cast<const uint8_t*>(strPayload.c_str()), token) != Core::ERROR_NONE) {
+            result = Core::ERROR_GENERAL;
+        }
+
+        return result;
     }
 
-    /* virtual */ Core::ProxyType<Web::Response> SecurityAgent::Process(const Web::Request& request)
+    /* virtual */ uint32_t SecurityAgent::Validate(const string& token, bool& valid)
     {
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-        Core::TextSegmentIterator index(Core::TextFragment(request.Path, _skipURL, static_cast<uint32_t>(request.Path.length() - _skipURL)), false, '/');
+        valid = false;
 
-        result->ErrorCode = Web::STATUS_BAD_REQUEST;
-        result->Message = "Unknown error";
+        auto webToken = JWTFactory::Instance().Element();
+        ASSERT(webToken != nullptr);
+        uint16_t load = webToken->PayloadLength(token);
 
-        index.Next();
+        // Validate the token
+        if (load != static_cast<uint16_t>(~0)) {
+            // It is potentially a valid token, extract the payload.
+            uint8_t* payload = reinterpret_cast<uint8_t*>(ALLOCA(load));
 
-        if (index.Next() == true) {
-            // We might be receiving a plugin download request.
-#ifdef SECURITY_TESTING_MODE
-            if ((request.Verb == Web::Request::HTTP_PUT) && (request.HasBody() == true)) {
-                if (index.Current() == _T("Token")) {
-                    Core::ProxyType<const Web::TextBody> data(request.Body<Web::TextBody>());
+            load = webToken->Decode(token, load, payload);
 
-                    if (data.IsValid() == true) {
-                        Core::ProxyType<Web::TextBody> token = textFactory.Element();
-                        const string& byteBag(static_cast<const string&>(*data));
-                        uint32_t code = CreateToken(static_cast<uint16_t>(byteBag.length()), reinterpret_cast<const uint8_t*>(byteBag.c_str()), static_cast<string&>(*token));
-
-                        if (code == Core::ERROR_NONE) {
-
-                            result->Body(token);
-                            result->ContentType = Web::MIMETypes::MIME_TEXT;
-                            result->ErrorCode = Web::STATUS_OK;
-                            result->Message = "Ok";
-                        }
-                    }
-                }
-            } else
-#endif
-
-            if ( (request.Verb == Web::Request::HTTP_GET) && (index.Current() == _T("Valid")) ) {
-                result->ErrorCode = Web::STATUS_FORBIDDEN;
-                result->Message = _T("Missing token");
-
-                if (request.WebToken.IsSet()) {
-                    auto webToken = JWTFactory::Instance().Element();
-                    ASSERT(webToken != nullptr);
-                    const string& token = request.WebToken.Value().Token();
-                    uint16_t load = webToken->PayloadLength(token);
-
-                    // Validate the token
-                    if (load != static_cast<uint16_t>(~0)) {
-                        // It is potentially a valid token, extract the payload.
-                        uint8_t* payload = reinterpret_cast<uint8_t*>(ALLOCA(load));
-
-                        load = webToken->Decode(token, load, payload);
-
-                        if (load == static_cast<uint16_t>(~0)) {
-                            result->ErrorCode = Web::STATUS_FORBIDDEN;
-                            result->Message = _T("Invalid token");
-                        } else {
-                            result->ErrorCode = Web::STATUS_OK;
-                            result->Message = _T("Valid token");
-                            TRACE(Security, (_T("Token contents: %s"), reinterpret_cast<const TCHAR*>(payload)));
-                        }
-                    }
-                }
+            if (load != static_cast<uint16_t>(~0)) {
+                valid = true;
             }
         }
-        return (result);
+
+        return Core::ERROR_NONE;
     }
+#endif
 
 } // namespace Plugin
 } // namespace Thunder

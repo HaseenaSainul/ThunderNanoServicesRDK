@@ -35,11 +35,11 @@ static uint32_t gcd(uint32_t a, uint32_t b)
 namespace Thunder {
 namespace Plugin {
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    class Monitor : public PluginHost::IPlugin, public PluginHost::JSONRPC {
-#else
-    class Monitor : public PluginHost::IPlugin, public Exchange::IMonitor {
+    class Monitor : public PluginHost::IPlugin,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                    public Exchange::IMonitor,
 #endif
+                    public PluginHost::JSONRPC {
     private:
         class RestartInfo : public Core::JSON::Container {
         public:
@@ -1053,9 +1053,8 @@ POP_WARNING()
 
         BEGIN_INTERFACE_MAP(Monitor)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
-#else
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(Exchange::IMonitor)
 #endif
         END_INTERFACE_MAP

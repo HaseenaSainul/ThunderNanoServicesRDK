@@ -123,7 +123,9 @@ namespace Plugin {
             if (_opencdmi == nullptr) {
                 message = _T("OCDM could not be instantiated.");
             } else {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 RegisterAll();
+#endif
                 _opencdmi->Initialize(_service);
 
                 ASSERT(_connectionId != 0);
@@ -138,6 +140,12 @@ namespace Plugin {
                 }
                 else {
                     message = _T("OCDM crashed at initialize!");
+                }
+                _ocdm = _opencdmi->QueryInterface<Exchange::IOCDM>();
+                if (_ocdm == nullptr) {
+                    SYSLOG(Logging::Startup, (_T("OCDM service is unavailable.")));
+                } else {
+                    Exchange::JOCDM::Register(*this, _ocdm);
                 }
             }
         }
@@ -161,7 +169,9 @@ namespace Plugin {
 
                 _opencdmi->Deinitialize(service);
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 UnregisterAll();
+#endif
 
                 RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
 
@@ -194,85 +204,6 @@ namespace Plugin {
     {
         // No additional info to report.
         return string();
-    }
-
-    /* virtual */ void OCDM::Inbound(Web::Request&)
-    {
-    }
-
-    /* virtual */ Core::ProxyType<Web::Response> OCDM::Process(const Web::Request& request)
-    {
-        ASSERT(_skipURL <= request.Path.length());
-
-        TRACE(Trace::Information, (string(_T("Received OCDM request"))));
-
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-        Core::TextSegmentIterator index(Core::TextFragment(request.Path, _skipURL, static_cast<uint32_t>(request.Path.length() - _skipURL)), false, '/');
-
-        result->ErrorCode = Web::STATUS_BAD_REQUEST;
-        result->Message = _T("Unsupported GET request.");
-
-        // By default, we are in front of any element, jump onto the first element, which is if, there is something an empty slot.
-        index.Next();
-
-        if (request.Verb == Web::Request::HTTP_GET) {
-
-            if (index.Next() == false) {
-                Core::ProxyType<Web::JSONBodyType<Data>> data(jsonDataFactory.Element());
-
-                RPC::IStringIterator* systems(_opencdmi->Systems());
-
-                if (systems == nullptr) {
-                    TRACE(Trace::Error, (_T("Could not load the Systems. %d"), __LINE__));
-                } else {
-                    string element;
-                    while (systems->Next(element) == true) {
-                        RPC::IStringIterator* index(_opencdmi->Designators(element));
-                        if (index == nullptr) {
-                            TRACE(Trace::Error, (_T("Could not load the Designators. %d"), __LINE__));
-                        } else {
-                            data->Systems.Add(Data::System(systems->Current(), index));
-                            index->Release();
-                        }
-                    }
-                    systems->Release();
-                }
-                result->ErrorCode = Web::STATUS_OK;
-                result->Message = _T("Available Systems.");
-                result->Body(data);
-            } else {
-                if (index.Current().Text() == _T("Sessions")) {
-
-                    // Core::ProxyType<Web::JSONBodyType<WifiControl::NetworkList> > networks (jsonResponseFactoryNetworkList.Element());
-
-                    // virtual RPC::IStringIterator* Sessions(const string& keySystem);
-                    result->ErrorCode = Web::STATUS_OK;
-                    result->Message = _T("Active Sessions.");
-                    // result->Body(networks);
-
-                } else if (index.Current().Text() == _T("Designators")) {
-                    if (index.Next() == true) {
-
-                        Core::ProxyType<Web::JSONBodyType<OCDM::Data::System>> data(jsonSystemFactory.Element());
-                        RPC::IStringIterator* entries(_opencdmi->Designators(index.Current().Text()));
-
-                        if (entries == nullptr) {
-                            TRACE(Trace::Error, (_T("Could not load the Designators. %d"), __LINE__));
-                        } else {
-                            data->Name = index.Current().Text();
-                            data->Load(entries);
-                            entries->Release();
-                        }
-
-                        result->Body(data);
-                        result->ErrorCode = Web::STATUS_OK;
-                        result->Message = _T("Available Systems.");
-                    }
-                }
-            }
-        }
-
-        return result;
     }
 
     void OCDM::Deactivated(RPC::IRemoteConnection* connection)

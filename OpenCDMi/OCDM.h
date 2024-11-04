@@ -24,11 +24,12 @@
 #include <interfaces/IContentDecryption.h>
 #include <interfaces/IMemory.h>
 #include <interfaces/json/JsonData_OCDM.h>
+#include <interfaces/json/JOCDM.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OCDM : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
+    class OCDM : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     private:
 
         class Notification : public RPC::IRemoteConnection::INotification {
@@ -142,6 +143,7 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
             : _skipURL(0)
             , _connectionId(0)
             , _service(nullptr)
+            , _ocdm(nullptr)
             , _opencdmi(nullptr)
             , _memory(nullptr)
             , _notification(this)
@@ -154,8 +156,9 @@ POP_WARNING()
     public:
         BEGIN_INTERFACE_MAP(OCDM)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-        INTERFACE_ENTRY(PluginHost::IWeb)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
+#endif
         INTERFACE_AGGREGATE(Exchange::IContentDecryption, _opencdmi)
         INTERFACE_AGGREGATE(Exchange::IMemory, _memory)
         END_INTERFACE_MAP
@@ -182,14 +185,10 @@ POP_WARNING()
         // to this plugin. This Metadata can be used by the MetData plugin to publish this information to the ouside world.
         string Information() const override;
 
-        //  IWeb methods
-        // -------------------------------------------------------------------------------------------------------
-        void Inbound(Web::Request& request) override;
-        Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
-
     private:
         void Deactivated(RPC::IRemoteConnection* process);
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         bool KeySystems(const string& name, Core::JSON::ArrayType<Core::JSON::String>& response) const;
 
         // JsonRpc
@@ -197,11 +196,13 @@ POP_WARNING()
         void UnregisterAll();
         uint32_t get_drms(Core::JSON::ArrayType<JsonData::OCDM::DrmData>& response) const;
         uint32_t get_keysystems(const string& index, Core::JSON::ArrayType<Core::JSON::String>& response) const;
+#endif
 
     private:
         uint8_t _skipURL;
         uint32_t _connectionId;
         PluginHost::IShell* _service;
+        Exchange::IOCDM* _ocdm;
         Exchange::IContentDecryption* _opencdmi;
         Exchange::IMemory* _memory;
         Core::SinkType<Notification> _notification;
