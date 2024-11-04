@@ -54,6 +54,8 @@ namespace Plugin {
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         RegisterAll();
+#else
+        Exchange::JMonitor::Register(*this, this);
 #endif
 
         // On succes return a name as a Callsign to be used in the URL, after the "service"prefix
@@ -66,6 +68,8 @@ namespace Plugin {
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         UnregisterAll();
+#else
+        Exchange::JMonitor::Unregister(*this);
 #endif
 
         service->Unregister(&_monitor);
@@ -90,7 +94,7 @@ namespace Plugin {
     /* virtual */ uint32_t Monitor::ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics)
     {
         std::list<Exchange::IMonitor::Statistics> statisticsList;
-	_monitor.Snapshot(callsign, statisticsList);
+        _monitor.Snapshot(callsign, statisticsList);
         if (statisticsList.size() == 1) {
             _monitor.Reset(callsign);
             statistics = statisticsList.front();
@@ -101,8 +105,8 @@ namespace Plugin {
     /* virtual */ uint32_t Monitor::Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const
     {
         std::list<Exchange::IMonitor::Statistics> statisticsList;
-	_monitor.Snapshot(callsign, statisticsList);
-	using Iterator = Exchange::IMonitor::IStatisticsIterator;
+        _monitor.Snapshot(callsign, statisticsList);
+        using Iterator = Exchange::IMonitor::IStatisticsIterator;
         statistics = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(statisticsList); 
         return Core::ERROR_NONE;
     }

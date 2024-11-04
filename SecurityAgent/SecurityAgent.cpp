@@ -169,6 +169,10 @@ namespace Plugin {
                     subSystem->Set(PluginHost::ISubSystem::SECURITY, &information);
                     subSystem->Release();
                 }
+
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                Exchange::JSecurityAgent::Register(*this, this);
+#endif
             }
         }
         else {
@@ -192,6 +196,9 @@ namespace Plugin {
             Core::FileSystemMonitor::Instance().Unregister(&(*_dacDirCallback), _dacDir);
             _dacDirCallback.Release();
         }
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        Exchange::JSecurityAgent::Unregister(*this);
+#endif
         _dac.Clear();
     }
 

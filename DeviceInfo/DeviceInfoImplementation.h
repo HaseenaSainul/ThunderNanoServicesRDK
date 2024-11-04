@@ -152,7 +152,7 @@ namespace Plugin {
         };
         using AudioOutputMap = std::map<Exchange::IDeviceAudioCapabilities::AudioOutput, AudioOutputCapability>;
         using AudioOutputList = std::list<Exchange::IDeviceAudioCapabilities::AudioOutput>;
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         using AudioOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator>;
 #endif
 
@@ -163,7 +163,7 @@ namespace Plugin {
         };
         using VideoOutputMap = std::map<Exchange::IDeviceVideoCapabilities::VideoOutput, VideoOutputCapability>;
         using VideoOutputList = std::list<Exchange::IDeviceVideoCapabilities::VideoOutput>;
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         using VideoOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceVideoCapabilities::IVideoOutputIterator>;
 #endif
 
@@ -199,7 +199,7 @@ namespace Plugin {
 
         uint32_t Configure(const PluginHost::IShell* service) override;
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         uint32_t AudioOutputs(IAudioOutputIterator*& res) const override;
         uint32_t AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
         uint32_t MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;

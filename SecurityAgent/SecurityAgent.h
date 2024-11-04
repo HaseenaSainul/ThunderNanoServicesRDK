@@ -22,7 +22,7 @@
 #include "Module.h"
 #include "AccessControlList.h"
 
-#include <interfaces/ISecurityAgent.h>
+#include <interfaces/json/JSecurityAgent.h>
 #include <interfaces/json/JsonData_SecurityAgent.h>
 
 namespace Thunder {
@@ -173,11 +173,7 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(SecurityAgent)
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IAuthenticate)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
-#else
-        INTERFACE_ENTRY(Exchange::ISecurityAgent)
-#endif
         END_INTERFACE_MAP
 
     public:

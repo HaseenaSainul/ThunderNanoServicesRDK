@@ -22,7 +22,8 @@
 
 #include "Module.h"
 #include <interfaces/IMemory.h>
-#include <interfaces/IMonitor.h>
+
+#include <interfaces/json/JMonitor.h>
 #include <interfaces/json/JsonData_Monitor.h>
 #include <limits>
 #include <string>
@@ -1054,9 +1055,6 @@ POP_WARNING()
         BEGIN_INTERFACE_MAP(Monitor)
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        INTERFACE_ENTRY(Exchange::IMonitor)
-#endif
         END_INTERFACE_MAP
 
     public:

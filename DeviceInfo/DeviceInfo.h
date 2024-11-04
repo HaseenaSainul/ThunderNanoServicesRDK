@@ -28,11 +28,11 @@
 namespace Thunder {
 namespace Plugin {
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
-    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::JSONRPC {
-#else
-    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::JSONRPC::IDeviceCapabilities {
+    class DeviceInfo : public PluginHost::IPlugin,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        public Exchange::JSONRPC::IDeviceCapabilities,
 #endif
+        public PluginHost::JSONRPC {
 
     public:
 
@@ -127,8 +127,21 @@ namespace Plugin {
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        // JSONRPC::IDeviceCapabilities overrides
+        Core::hresult FirmwareVersion(Exchange::JSONRPC::IDeviceCapabilities::FirmwareInfo& value) const override;
+        Core::hresult DeviceData(Exchange::JSONRPC::IDeviceCapabilities::Device& value) const override;
+        Core::hresult SystemInfo(Exchange::JSONRPC::IDeviceCapabilities::System& value) const override;
+        Core::hresult SocketInfo(Exchange::JSONRPC::IDeviceCapabilities::Socket& value) const override;
+        Core::hresult AddressInfo(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const override;
+        Core::hresult DeviceAudioCapabilities(
+            Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator*& audioOutputCaps) const override;
+        Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec,
+            Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator*& videoOutputCaps) const override;
+#endif
+
     private:
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         // JsonRpc
         void RegisterAll();
         void UnregisterAll();
@@ -192,17 +205,6 @@ namespace Plugin {
             }
             return status;
         }
-#else
-
-        Core::hresult FirmwareVersion(Exchange::JSONRPC::IDeviceCapabilities::FirmwareInfo& value) const override;
-        Core::hresult DeviceData(Exchange::JSONRPC::IDeviceCapabilities::Device& value) const override;
-        Core::hresult SystemInfo(Exchange::JSONRPC::IDeviceCapabilities::System& value) const override;
-        Core::hresult SocketInfo(Exchange::JSONRPC::IDeviceCapabilities::Socket& value) const override;
-        Core::hresult Addresses(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const override;
-        Core::hresult DeviceAudioCapabilities(
-            Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator*& audioOutputCaps) const override;
-        Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec,
-            Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator*& videoOutputCaps) const override;
 #endif
         void UpdateDeviceIdentifier();
         void Deactivated(RPC::IRemoteConnection* connection);

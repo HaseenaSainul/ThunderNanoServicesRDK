@@ -73,7 +73,7 @@ namespace Plugin {
                     if (_deviceVideoCapabilityInterface == nullptr) {
                         message = _T("DeviceInfo Video Capabilities Interface could not be instantiated");
                     } else {
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                         RegisterAll();
 #endif
                     }
@@ -105,7 +105,7 @@ namespace Plugin {
                     _deviceAudioCapabilityInterface = nullptr;
                 }
                 if (_deviceVideoCapabilityInterface != nullptr) {
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                     UnregisterAll();
 #endif
                     _deviceVideoCapabilityInterface->Release();
@@ -139,8 +139,7 @@ namespace Plugin {
         return (string());
     }
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
-
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
     void DeviceInfo::SysInfo(JsonData::DeviceInfo::SysteminfoData& systemInfo) const
     {
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());
@@ -496,7 +495,7 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfo::Addresses(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const
+    Core::hresult DeviceInfo::AddressInfo(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const
     {
         // Get the point of entry on Thunder..
         Core::AdapterIterator interfaces;
@@ -509,10 +508,16 @@ namespace Plugin {
 
             // get an interface with a public IP address, then we will have a proper MAC address..
             Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
+            Core::JSON::ArrayType<Core::JSON::String> ip;
 
             while (selectedNode.Next() == true) {
-                //FIXME 
+                ip.Add() = selectedNode.Address().HostAddress();
+//                Core::JSON::String nodeName;
+//                nodeName = selectedNode.Address().HostAddress();
+
+//                element.Ip.Add() = nodeName);
             }
+            ip.ToString(address.ip);
 
             addresses.push_back(address);
         }
