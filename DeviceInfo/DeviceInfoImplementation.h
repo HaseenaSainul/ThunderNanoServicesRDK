@@ -1,13 +1,20 @@
 #pragma once
 
 #include "Module.h"
+#include <interfaces/IConfiguration.h>
 #include <interfaces/IDeviceInfo.h>
 
 namespace Thunder {
 namespace Plugin {
     class DeviceInfoImplementation : public Exchange::IDeviceInfo,
                                      public Exchange::IDeviceAudioCapabilities,
-                                     public Exchange::IDeviceVideoCapabilities {
+                                     public Exchange::IDeviceVideoCapabilities,
+                                     public Exchange::IAddressMetadata,
+                                     public Exchange::IDeviceMetadata,
+                                     public Exchange::IImageMetadata,
+                                     public Exchange::ISocketMetadata,
+                                     public Exchange::ISystemMetadata,
+                                     public Exchange::IConfiguration {
     private:
         class Config : public Core::JSON::Container {
             using AudioCapabilitiesJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceAudioCapabilities::AudioCapability>>;
@@ -195,41 +202,56 @@ namespace Plugin {
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
         INTERFACE_ENTRY(Exchange::IDeviceAudioCapabilities)
         INTERFACE_ENTRY(Exchange::IDeviceVideoCapabilities)
+        INTERFACE_ENTRY(Exchange::IAddressMetadata)
+        INTERFACE_ENTRY(Exchange::IDeviceMetadata)
+        INTERFACE_ENTRY(Exchange::IImageMetadata)
+        INTERFACE_ENTRY(Exchange::ISocketMetadata)
+        INTERFACE_ENTRY(Exchange::ISystemMetadata)
+        INTERFACE_ENTRY(Exchange::IConfiguration)
         END_INTERFACE_MAP
 
         uint32_t Configure(const PluginHost::IShell* service) override;
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        uint32_t AudioOutputs(IAudioOutputIterator*& res) const override;
-        uint32_t AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
-        uint32_t MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;
-        uint32_t MS12AudioProfiles(const AudioOutput audioOutput, IMS12ProfileIterator*& ms12AudioProfiles) const override;
-        uint32_t VideoOutputs(IVideoOutputIterator*& videoOutputs) const override;
-        uint32_t Resolutions(const VideoOutput videoOutput, IScreenResolutionIterator*& resolutions) const override;
+        Core::hresult AudioOutputs(IAudioOutputIterator*& res) const override;
+        Core::hresult AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
+        Core::hresult MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;
+        Core::hresult MS12AudioProfiles(const AudioOutput audioOutput, IMS12ProfileIterator*& ms12AudioProfiles) const override;
+        Core::hresult VideoOutputs(IVideoOutputIterator*& videoOutputs) const override;
+        Core::hresult Resolutions(const VideoOutput videoOutput, IScreenResolutionIterator*& resolutions) const override;
 #else
-        uint32_t AudioOutputs(AudioOutput& res) const override;
-        uint32_t AudioCapabilities(const AudioOutput audioOutput, AudioCapability& audioCapabilities) const override;
-        uint32_t MS12Capabilities(const AudioOutput audioOutput, MS12Capability& ms12Capabilities) const override;
-        uint32_t MS12AudioProfiles(const AudioOutput audioOutput, MS12Profile& ms12AudioProfiles) const override;
-        uint32_t VideoOutputs(VideoOutput& videoOutputs) const override;
-        uint32_t Resolutions(const VideoOutput videoOutput, ScreenResolution& resolutions) const override;
-#endif
-        uint32_t DefaultResolution(const VideoOutput videoOutput, ScreenResolution& defaultResolution) const override;
-        uint32_t Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const override;
-        uint32_t HDR(bool& supportsHDR) const override;
-        uint32_t Atmos(bool& supportsAtmos) const override;
-        uint32_t CEC(bool& supportsCEC) const override;
-        uint32_t HostEDID(string& edid) const override;
+        Core::hresult AudioOutputs(AudioOutput& res) const override;
+        Core::hresult AudioCapabilities(const AudioOutput audioOutput, AudioCapability& audioCapabilities) const override;
+        Core::hresult MS12Capabilities(const AudioOutput audioOutput, MS12Capability& ms12Capabilities) const override;
+        Core::hresult MS12AudioProfiles(const AudioOutput audioOutput, MS12Profile& ms12AudioProfiles) const override;
+        Core::hresult DeviceAudioCapabilities(IAudioOutputCapsIterator*& audioOutputCaps) const override;
 
-        uint32_t Make(string& value) const override;
-        uint32_t ModelName(string& value) const override;
-        uint32_t ModelYear(uint16_t& value) const override;
-        uint32_t DeviceType(string& value) const override;
-        uint32_t FriendlyName(string& value) const override;
-        uint32_t DistributorId(string& value) const override;
-        uint32_t SerialNumber(string& value) const override;
-        uint32_t Sku(string& value) const override;
-        uint32_t PlatformName(string& value) const override;
+        Core::hresult VideoOutputs(VideoOutput& videoOutputs) const override;
+        Core::hresult Resolutions(const VideoOutput videoOutput, ScreenResolution& resolutions) const override;
+        Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec, IVideoOutputCapsIterator*& videoOutputCaps) const override;
+
+        Core::hresult AddressInfo(IAddressIterator*& ip) const override;
+        Core::hresult DeviceData(Device& value) const override;
+        Core::hresult FirmwareInfo(Firmware& value) const override;
+        Core::hresult SystemInfo(System& value) const override;
+        Core::hresult SocketInfo(Socket& value) const override;
+#endif
+        Core::hresult DefaultResolution(const VideoOutput videoOutput, ScreenResolution& defaultResolution) const override;
+        Core::hresult Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const override;
+        Core::hresult HDR(bool& supportsHDR) const override;
+        Core::hresult Atmos(bool& supportsAtmos) const override;
+        Core::hresult CEC(bool& supportsCEC) const override;
+        Core::hresult HostEDID(string& edid) const override;
+
+        Core::hresult Make(string& value) const override;
+        Core::hresult ModelName(string& value) const override;
+        Core::hresult ModelYear(uint16_t& value) const override;
+        Core::hresult DeviceType(string& value) const override;
+        Core::hresult FriendlyName(string& value) const override;
+        Core::hresult DistributorId(string& value) const override;
+        Core::hresult SerialNumber(string& value) const override;
+        Core::hresult Sku(string& value) const override;
+        Core::hresult PlatformName(string& value) const override;
 
     private:
         Config _config;

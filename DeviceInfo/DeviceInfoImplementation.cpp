@@ -15,7 +15,7 @@ namespace Plugin {
 #endif
     using ResolutionJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceVideoCapabilities::ScreenResolution>>;
 
-    uint32_t DeviceInfoImplementation::Configure(const PluginHost::IShell* service)
+    Core::hresult DeviceInfoImplementation::Configure(const PluginHost::IShell* service)
     {
         ASSERT(service != nullptr);
 
@@ -73,7 +73,7 @@ namespace Plugin {
     }
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*& audioOutputs) const
+    Core::hresult DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*& audioOutputs) const
     {
         AudioOutputList audioOutputList;
 
@@ -86,7 +86,7 @@ namespace Plugin {
         return (audioOutputs != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 #else
-    uint32_t DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::AudioOutput& audioOutputs) const
+    Core::hresult DeviceInfoImplementation::AudioOutputs(Exchange::IDeviceAudioCapabilities::AudioOutput& audioOutputs) const
     {
         if (_audioOutputMap.size()) {
 
@@ -105,7 +105,7 @@ namespace Plugin {
 #endif
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
+    Core::hresult DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.AudioCapabilities.size() > 0)) {
@@ -115,7 +115,7 @@ namespace Plugin {
 
     }
 #else
-    uint32_t DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::AudioCapability& audioCapabilities) const
+    Core::hresult DeviceInfoImplementation::AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::AudioCapability& audioCapabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.AudioCapabilities.size() > 0)) {
@@ -134,7 +134,7 @@ namespace Plugin {
 #endif
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
+    Core::hresult DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.MS12Capabilities.size() > 0)) {
@@ -143,7 +143,7 @@ namespace Plugin {
         return (ms12Capabilities != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 #else
-    uint32_t DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Capability& ms12Capabilities) const
+    Core::hresult DeviceInfoImplementation::MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Capability& ms12Capabilities) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.MS12Capabilities.size() > 0)) {
@@ -162,7 +162,7 @@ namespace Plugin {
 #endif
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*& ms12AudioProfiles) const
+    Core::hresult DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*& ms12AudioProfiles) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.MS12Profiles.size() > 0)) {
@@ -171,7 +171,7 @@ namespace Plugin {
         return (ms12AudioProfiles != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 #else
-    uint32_t DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Profile& ms12Profiles) const
+    Core::hresult DeviceInfoImplementation::MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput, Exchange::IDeviceAudioCapabilities::MS12Profile& ms12Profiles) const
     {
         AudioOutputMap::const_iterator index = _audioOutputMap.find(audioOutput);
         if ((index != _audioOutputMap.end()) && (index->second.MS12Profiles.size() > 0)) {
@@ -189,7 +189,7 @@ namespace Plugin {
 #endif
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*& videoOutputs) const
+    Core::hresult DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*& videoOutputs) const
     {
         VideoOutputList videoOutputList;
 
@@ -203,7 +203,7 @@ namespace Plugin {
         return (videoOutputs != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 #else
-    uint32_t DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::VideoOutput& videoOutputs) const
+    Core::hresult DeviceInfoImplementation::VideoOutputs(Exchange::IDeviceVideoCapabilities::VideoOutput& videoOutputs) const
     {
         if (_videoOutputMap.size()) {
 
@@ -221,7 +221,7 @@ namespace Plugin {
     }
 #endif
 
-    uint32_t DeviceInfoImplementation::DefaultResolution(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& defaultResolution) const
+    Core::hresult DeviceInfoImplementation::DefaultResolution(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& defaultResolution) const
     {
         defaultResolution = Exchange::IDeviceVideoCapabilities::ScreenResolution_Unknown;
         VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
@@ -232,7 +232,7 @@ namespace Plugin {
     }
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    uint32_t DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*& resolutions) const
+    Core::hresult DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*& resolutions) const
     {
         VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
         if ((index != _videoOutputMap.end()) && (index->second.Resolutions.size() > 0)) {
@@ -242,7 +242,7 @@ namespace Plugin {
         return (resolutions != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 #else
-    uint32_t DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& resolutions) const
+    Core::hresult DeviceInfoImplementation::Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& resolutions) const
     {
         VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
         if ((index != _videoOutputMap.end()) && (index->second.Resolutions.size() > 0)) {
@@ -260,7 +260,7 @@ namespace Plugin {
     }
 #endif
 
-    uint32_t DeviceInfoImplementation::Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const
+    Core::hresult DeviceInfoImplementation::Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const
     {
         hdcpVersion = Exchange::IDeviceVideoCapabilities::CopyProtection::HDCP_UNAVAILABLE;
         VideoOutputMap::const_iterator index = _videoOutputMap.find(videoOutput);
@@ -271,33 +271,33 @@ namespace Plugin {
         return (Core::ERROR_NONE);
     }
 
-    uint32_t DeviceInfoImplementation::HDR(bool& supportsHDR) const
+    Core::hresult DeviceInfoImplementation::HDR(bool& supportsHDR) const
     {
         supportsHDR = _supportsHdr;
         return Core::ERROR_NONE;
     }
 
-    uint32_t DeviceInfoImplementation::Atmos(bool& supportsAtmos) const
+    Core::hresult DeviceInfoImplementation::Atmos(bool& supportsAtmos) const
     {
         supportsAtmos = _supportsAtmos;
         return Core::ERROR_NONE;
     }
 
-    uint32_t DeviceInfoImplementation::CEC(bool& supportsCEC) const
+    Core::hresult DeviceInfoImplementation::CEC(bool& supportsCEC) const
     {
         supportsCEC = _supportsCEC;
         return Core::ERROR_NONE;
     }
 
-    uint32_t DeviceInfoImplementation::HostEDID(string& edid) const
+    Core::hresult DeviceInfoImplementation::HostEDID(string& edid) const
     {
         edid = _hostEdid;
         return Core::ERROR_NONE;
     }
 
-    uint32_t DeviceInfoImplementation::Make(string& value) const
+    Core::hresult DeviceInfoImplementation::Make(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_make.empty() == false) {
             value = _make;
             result = Core::ERROR_NONE;
@@ -305,9 +305,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::SerialNumber(string& value) const
+    Core::hresult DeviceInfoImplementation::SerialNumber(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_serialNumber.empty() == false) {
             value = _serialNumber;
             result = Core::ERROR_NONE;
@@ -315,9 +315,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::Sku(string& value) const
+    Core::hresult DeviceInfoImplementation::Sku(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_sku.empty() == false) {
             value = _sku;
             result = Core::ERROR_NONE;
@@ -325,9 +325,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::ModelName(string& value) const
+    Core::hresult DeviceInfoImplementation::ModelName(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_modelName.empty() == false) {
             value = _modelName;
             result = Core::ERROR_NONE;
@@ -335,9 +335,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::ModelYear(uint16_t& value) const
+    Core::hresult DeviceInfoImplementation::ModelYear(uint16_t& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_modelYear != 0) {
             value = _modelYear;
             result = Core::ERROR_NONE;
@@ -345,9 +345,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::FriendlyName(string& value) const
+    Core::hresult DeviceInfoImplementation::FriendlyName(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_friendlyName.empty() == false) {
             value = _friendlyName;
             result = Core::ERROR_NONE;
@@ -355,9 +355,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::DeviceType(string& value) const
+    Core::hresult DeviceInfoImplementation::DeviceType(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_deviceType.empty() == false) {
             value = _deviceType;
             result = Core::ERROR_NONE;
@@ -365,9 +365,9 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::DistributorId(string& value) const
+    Core::hresult DeviceInfoImplementation::DistributorId(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_distributorId.empty() == false) {
             value = _distributorId;
             result = Core::ERROR_NONE;
@@ -375,14 +375,210 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceInfoImplementation::PlatformName(string& value) const
+    Core::hresult DeviceInfoImplementation::PlatformName(string& value) const
     {
-        uint32_t result = Core::ERROR_UNAVAILABLE;
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
         if (_platformName.empty() == false) {
             value = _platformName;
             result = Core::ERROR_NONE;
         }
         return result;
     }
+
+    Core::hresult DeviceInfoImplementation::DeviceAudioCapabilities(IAudioOutputCapsIterator*& audioOutputCaps) const
+    {
+        Exchange::IDeviceAudioCapabilities::AudioOutput audioOutputs;
+        if ((AudioOutputs(audioOutputs) == Core::ERROR_NONE) &&
+            ( audioOutputs != 0)) {
+            uint8_t bit = 0x1;
+            uint8_t value = audioOutputs;
+            std::list<Exchange::IDeviceAudioCapabilities::AudioOutputCaps> audioOutputCapsList;
+            while (value != 0) {
+                if ((bit & value) != 0) {
+
+                    Exchange::IDeviceAudioCapabilities::AudioOutputCaps audioOutputCap;
+                    Exchange::IDeviceAudioCapabilities::AudioOutput audioOutput = static_cast<Exchange::IDeviceAudioCapabilities::AudioOutput>(bit);
+                    audioOutputCap.audioOutput = audioOutput;
+
+                    Exchange::IDeviceAudioCapabilities::AudioCapability audioCapabilities = Exchange::IDeviceAudioCapabilities::AUDIOCAPABILITY_NONE;
+                    if ((AudioCapabilities(audioOutput, audioCapabilities) == Core::ERROR_NONE) &&
+                        (audioCapabilities != 0)) {
+                        audioOutputCap.audioCapabilities = audioCapabilities;
+                    }
+
+                    Exchange::IDeviceAudioCapabilities::MS12Capability ms12Capabilities = Exchange::IDeviceAudioCapabilities::MS12CAPABILITY_NONE;
+                    if ((MS12Capabilities(audioOutput, ms12Capabilities) != Core::ERROR_NONE) &&
+                        (ms12Capabilities != 0)) {
+                        audioOutputCap.ms12Capabilities = ms12Capabilities;
+                    }
+
+                    Exchange::IDeviceAudioCapabilities::MS12Profile ms12Profiles = Exchange::IDeviceAudioCapabilities::MS12PROFILE_NONE;
+                    if ((MS12AudioProfiles(audioOutput, ms12Profiles) != Core::ERROR_NONE) &&
+                        (ms12Profiles != 0)) {
+                        audioOutputCap.ms12Profiles = ms12Profiles;
+                    }
+
+                    value &= ~bit;
+                    audioOutputCapsList.push_back(audioOutputCap);
+                }
+                bit = (bit << 1);
+            }
+
+            if (audioOutputCapsList.empty() == false) {
+                using Iterator = Exchange::IDeviceAudioCapabilities::IAudioOutputCapsIterator;
+                audioOutputCaps = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(audioOutputCapsList);
+            }
+        }
+
+        return (audioOutputCaps != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+    }
+
+    Core::hresult DeviceInfoImplementation::DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec, IVideoOutputCapsIterator*& videoOutputCaps) const
+    {
+        HDR(hdr);
+        Atmos(atmos);
+        CEC(cec);
+        HostEDID(edid);
+
+        Exchange::IDeviceVideoCapabilities::VideoOutput videoOutputs;
+        if ((VideoOutputs(videoOutputs) == Core::ERROR_NONE) &&
+            ( videoOutputs != 0)) {
+            uint8_t bit = 0x1;
+            uint8_t value = videoOutputs;
+            std::list<Exchange::IDeviceVideoCapabilities::VideoOutputCaps> videoOutputCapsList;
+            while (value != 0) {
+                if ((bit & value) != 0) {
+                    Exchange::IDeviceVideoCapabilities::VideoOutputCaps videoOutputCap;
+                    Exchange::IDeviceVideoCapabilities::VideoOutput videoOutput = static_cast<Exchange::IDeviceVideoCapabilities::VideoOutput>(bit);
+                    videoOutputCap.videoOutput = videoOutput;
+
+                    Exchange::IDeviceVideoCapabilities::CopyProtection hdcp = Exchange::IDeviceVideoCapabilities::HDCP_UNAVAILABLE;
+                    if ((Hdcp(videoOutput, hdcp) == Core::ERROR_NONE) &&
+                        (hdcp != 0)) {
+                        videoOutputCap.hdcp = hdcp;
+                    }
+                    Exchange::IDeviceVideoCapabilities::ScreenResolution defaultResolution = Exchange::IDeviceVideoCapabilities::ScreenResolution_Unknown;
+                    if ((DefaultResolution(videoOutput, defaultResolution) == Core::ERROR_NONE) &&
+                        (defaultResolution != 0)) {
+                        videoOutputCap.defaultResolution = defaultResolution;
+                    }
+                    Exchange::IDeviceVideoCapabilities::ScreenResolution resolutions = Exchange::IDeviceVideoCapabilities::ScreenResolution_Unknown;
+                    if ((Resolutions(videoOutput, resolutions) == Core::ERROR_NONE) &&
+                        (resolutions != 0)) {
+                        videoOutputCap.outputResolutions = resolutions;
+                    }
+                    value &= ~bit;
+                    videoOutputCapsList.push_back(videoOutputCap);
+                }
+                bit = (bit << 1);
+            }
+            if (videoOutputCapsList.empty() == false) {
+                using Iterator = Exchange::IDeviceVideoCapabilities::IVideoOutputCapsIterator;
+                videoOutputCaps = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(videoOutputCapsList);
+            }
+        }
+        return (videoOutputCaps != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+    }
+
+    Core::hresult DeviceInfoImplementation::AddressInfo(IAddressIterator*& ip) const
+    {
+        // Get the point of entry on Thunder..
+        Core::AdapterIterator interfaces;
+        std::list<Exchange::IAddressMetadata::Address> addresses;
+
+        while (interfaces.Next() == true) {
+            Exchange::IAddressMetadata::Address address;
+            address.name = interfaces.Name();
+            address.mac = interfaces.MACAddress(':');
+
+            // get an interface with a public IP address, then we will have a proper MAC address..
+            Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
+            Core::JSON::ArrayType<Core::JSON::String> ip;
+
+            while (selectedNode.Next() == true) {
+                ip.Add() = selectedNode.Address().HostAddress();
+//                Core::JSON::String nodeName;
+//                nodeName = selectedNode.Address().HostAddress();
+
+//                element.Ip.Add() = nodeName);
+            }
+            ip.ToString(address.ip);
+
+            addresses.push_back(address);
+        }
+
+        if (addresses.empty() == false) {
+            using Iterator = Exchange::IAddressMetadata::IAddressIterator;
+            ip = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(addresses);
+        }
+
+        return (ip != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
+
+    }
+
+    Core::hresult DeviceInfoImplementation::DeviceData(Device& device) const
+    {
+        string value;
+        if (DeviceType(value) == Core::ERROR_NONE) {
+            device.deviceType = value;
+        }
+        if (DistributorId(value) == Core::ERROR_NONE) {
+            device.distributorId = value;
+        }
+        if (FriendlyName(value) == Core::ERROR_NONE) {
+            device.friendlyName = value;
+        }
+        if (Make(value) == Core::ERROR_NONE) {
+            device.make = value;
+        }
+        if (ModelName(value) == Core::ERROR_NONE) {
+            device.modelName = value;
+        }
+        uint16_t year = 0;
+        if (ModelYear(year) == Core::ERROR_NONE) {
+            device.modelYear = year;
+        }
+        if (PlatformName(value) == Core::ERROR_NONE) {
+            device.platformName = year;
+        }
+        if (SerialNumber(value) == Core::ERROR_NONE) {
+            device.serialNumber = value;
+        }
+        if (Sku(value) == Core::ERROR_NONE) {
+            device.sku = value;
+        }
+
+        return Core::ERROR_NONE;
+    }
+
+    Core::hresult DeviceInfoImplementation::FirmwareInfo(Firmware& firmware VARIABLE_IS_NOT_USED) const
+    {
+        return Core::ERROR_UNAVAILABLE;
+    }
+
+    Core::hresult DeviceInfoImplementation::SystemInfo(System& system) const
+    {
+        Core::SystemInfo& singleton(Core::SystemInfo::Instance());
+
+        system.time = Core::Time::Now().ToRFC1123(true);
+        system.version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
+        system.uptime = singleton.GetUpTime();
+        system.freeRAM = singleton.GetFreeRam();
+        system.totalRAM = singleton.GetTotalRam();
+        system.deviceName = singleton.GetHostName();
+        system.cpuLoad = Core::NumberType<uint32_t>(static_cast<uint32_t>(singleton.GetCpuLoad())).Text();
+
+        _adminLock.Lock();
+        system.serialNumber = _deviceId;
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+
+    Core::hresult DeviceInfoImplementation::SocketInfo(Socket& socket) const
+    {
+        socket.runs = Core::ResourceMonitor::Instance().Runs();
+        return Core::ERROR_NONE;
+    }
+
 }
 }

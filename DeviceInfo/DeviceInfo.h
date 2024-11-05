@@ -21,18 +21,21 @@
 #define DEVICEINFO_DEVICEINFO_H
 
 #include "Module.h"
-#include <interfaces/IDeviceInfo.h>
-#include <interfaces/json/JDeviceCapabilities.h>
-#include <interfaces/json/JsonData_DeviceInfo.h>
+#include <interfaces/json/JAddressMetadata.h>
+#include <interfaces/json/JDeviceInfo.h>
+#include <interfaces/json/JDeviceMetadata.h>
+#include <interfaces/json/JDeviceAudioCapabilities.h>
+#include <interfaces/json/JDeviceVideoCapabilities.h>
+#include <interfaces/json/JImageMetadata.h>
+#include <interfaces/json/JSocketMetadata.h>
+#include <interfaces/json/JSystemMetadata.h>
+
+#include <interfaces/IConfiguration.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class DeviceInfo : public PluginHost::IPlugin,
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        public Exchange::JSONRPC::IDeviceCapabilities,
-#endif
-        public PluginHost::JSONRPC {
+    class DeviceInfo : public PluginHost::IPlugin, public PluginHost::JSONRPC {
 
     public:
 
@@ -104,6 +107,11 @@ namespace Plugin {
             , _deviceInfo(nullptr)
             , _deviceAudioCapabilityInterface(nullptr)
             , _deviceVideoCapabilityInterface(nullptr)
+            , _addressMetadata(nullptr)
+            , _deviceMetadata(nullptr)
+            , _imageMetadata(nullptr)
+            , _socketMetadata(nullptr)
+            , _systemMetadata(nullptr)
             , _connectionId(0)
             , _adminLock()
             , _notification(*this)
@@ -118,6 +126,12 @@ namespace Plugin {
         INTERFACE_AGGREGATE(Exchange::IDeviceInfo, _deviceInfo)
         INTERFACE_AGGREGATE(Exchange::IDeviceAudioCapabilities, _deviceAudioCapabilityInterface)
         INTERFACE_AGGREGATE(Exchange::IDeviceVideoCapabilities, _deviceVideoCapabilityInterface)
+        INTERFACE_AGGREGATE(Exchange::IAddressMetadata, _addressMetadata)
+        INTERFACE_AGGREGATE(Exchange::IDeviceMetadata, _deviceMetadata)
+        INTERFACE_AGGREGATE(Exchange::IImageMetadata, _imageMetadata)
+        INTERFACE_AGGREGATE(Exchange::ISocketMetadata, _socketMetadata)
+        INTERFACE_AGGREGATE(Exchange::ISystemMetadata, _systemMetadata)
+
         END_INTERFACE_MAP
 
     public:
@@ -126,19 +140,6 @@ namespace Plugin {
         virtual const string Initialize(PluginHost::IShell* service) override;
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
-
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        // JSONRPC::IDeviceCapabilities overrides
-        Core::hresult FirmwareVersion(Exchange::JSONRPC::IDeviceCapabilities::FirmwareInfo& value) const override;
-        Core::hresult DeviceData(Exchange::JSONRPC::IDeviceCapabilities::Device& value) const override;
-        Core::hresult SystemInfo(Exchange::JSONRPC::IDeviceCapabilities::System& value) const override;
-        Core::hresult SocketInfo(Exchange::JSONRPC::IDeviceCapabilities::Socket& value) const override;
-        Core::hresult AddressInfo(Exchange::JSONRPC::IDeviceCapabilities::IAddressIterator*& ip) const override;
-        Core::hresult DeviceAudioCapabilities(
-            Exchange::JSONRPC::IDeviceCapabilities::IAudioOutputCapsIterator*& audioOutputCaps) const override;
-        Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec,
-            Exchange::JSONRPC::IDeviceCapabilities::IVideoOutputCapsIterator*& videoOutputCaps) const override;
-#endif
 
     private:
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
@@ -217,6 +218,12 @@ namespace Plugin {
         Exchange::IDeviceInfo* _deviceInfo;
         Exchange::IDeviceAudioCapabilities* _deviceAudioCapabilityInterface;
         Exchange::IDeviceVideoCapabilities* _deviceVideoCapabilityInterface;
+        Exchange::IAddressMetadata* _addressMetadata;
+        Exchange::IDeviceMetadata* _deviceMetadata;
+        Exchange::IImageMetadata* _imageMetadata;
+        Exchange::ISocketMetadata* _socketMetadata;
+        Exchange::ISystemMetadata* _systemMetadata;
+
         uint32_t _connectionId;
         mutable Core::CriticalSection _adminLock;
         Core::SinkType<Notification> _notification;
