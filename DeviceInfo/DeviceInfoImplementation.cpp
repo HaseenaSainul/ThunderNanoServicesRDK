@@ -15,9 +15,12 @@ namespace Plugin {
 #endif
     using ResolutionJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceVideoCapabilities::ScreenResolution>>;
 
-    Core::hresult DeviceInfoImplementation::Configure(const PluginHost::IShell* service)
+    Core::hresult DeviceInfoImplementation::Configure(PluginHost::IShell* service)
     {
         ASSERT(service != nullptr);
+
+        _service = service;
+        _service->AddRef();
 
         _config.FromString(service->ConfigLine());
 
@@ -556,21 +559,51 @@ namespace Plugin {
         return Core::ERROR_UNAVAILABLE;
     }
 
+    string DeviceInfoImplementation::DeviceIdentifier()
+    {
+        if (_deviceId.empty() == true) {
+
+            PluginHost::ISubSystem* subSystem = _service->SubSystems();
+            if (subSystem != nullptr) {
+                if (subSystem->IsActive(PluginHost::ISubSystem::IDENTIFIER) == true) {
+
+                    const PluginHost::ISubSystem::IIdentifier* identifier(subSystem->Get<PluginHost::ISubSystem::IIdentifier>());
+
+                    if (identifier != nullptr) {
+                        uint8_t buffer[64];
+
+                        if ((buffer[0] = identifier->Identifier(sizeof(buffer) - 1, &(buffer[1]))) != 0) {
+                            _adminLock.Lock();
+                            _deviceId = Core::SystemInfo::Instance().Id(buffer, ~0);
+                            _adminLock.Unlock();
+                        }
+                        identifier->Release();
+                    }
+                }
+                subSystem->Release();
+            }
+        }
+        return _deviceId;
+    }
+
     Core::hresult DeviceInfoImplementation::SystemInfo(System& system) const
     {
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());
 
         system.time = Core::Time::Now().ToRFC1123(true);
-        system.version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
         system.uptime = singleton.GetUpTime();
         system.freeRAM = singleton.GetFreeRam();
         system.totalRAM = singleton.GetTotalRam();
         system.deviceName = singleton.GetHostName();
         system.cpuLoad = Core::NumberType<uint32_t>(static_cast<uint32_t>(singleton.GetCpuLoad())).Text();
+        system.serialNumber = const_cast<DeviceInfoImplementation*>(this)->DeviceIdentifier();
 
-        _adminLock.Lock();
-        system.serialNumber = _deviceId;
-        _adminLock.Unlock();
+        PluginHost::ISubSystem* subSystem = _service->SubSystems();
+        if (subSystem == nullptr) {
+            system.version = subSystem->Version() + _T("#") + subSystem->BuildTreeHash();
+            subSystem->Release();
+        }
+
         return Core::ERROR_NONE;
     }
 

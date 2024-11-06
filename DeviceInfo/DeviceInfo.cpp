@@ -39,7 +39,9 @@ namespace Plugin {
     /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
     {
         ASSERT(_service == nullptr);
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         ASSERT(_subSystem == nullptr);
+#endif
         ASSERT(_deviceInfo == nullptr);
         ASSERT(service != nullptr);
         ASSERT(_connectionId == 0);
@@ -51,6 +53,7 @@ namespace Plugin {
         _service = service;
         _service->AddRef();
         _service->Register(&_notification);
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         _subSystem = service->SubSystems();
 
         if (_subSystem == nullptr) {
@@ -58,19 +61,31 @@ namespace Plugin {
         } else {
             _subSystem->AddRef();
             _subSystem->Register(&_notification);
+#endif
 
             _deviceInfo = _service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
             if (_deviceInfo == nullptr) {
                 message = _T("DeviceInfo could not be instantiated");
                 SYSLOG(Logging::Startup, (_T("DeviceInfo could not be instantiated")));
             } else {
+
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 _deviceInfo->Configure(_service);
-                Exchange::JDeviceInfo::Register(*this, &_deviceInfo);
+#else
+                Exchange::IConfiguration* configuration = _deviceInfo->QueryInterface<Exchange::IConfiguration>();
+                if (configuration != nullptr) {
+                    configuration->Configure(service);
+                    configuration->Release();
+                }
+                Exchange::JDeviceInfo::Register(*this, _deviceInfo);
+#endif
                 _deviceAudioCapabilityInterface = _deviceInfo->QueryInterface<Exchange::IDeviceAudioCapabilities>();
                 if (_deviceAudioCapabilityInterface == nullptr) {
                     message = _T("DeviceInfo Audio Capabilities Interface could not be instantiated");
                 } else {
-                    Exchange::JDeviceAudioCapabilities::Register(*this, &_deviceAudioCapabilityInterface);
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                    Exchange::JDeviceAudioCapabilities::Register(*this, _deviceAudioCapabilityInterface);
+#endif
                     _deviceVideoCapabilityInterface = _deviceInfo->QueryInterface<Exchange::IDeviceVideoCapabilities>();
                     if (_deviceVideoCapabilityInterface == nullptr) {
                         message = _T("DeviceInfo Video Capabilities Interface could not be instantiated");
@@ -79,42 +94,44 @@ namespace Plugin {
                         RegisterAll();
 #else
 
-                        Exchange::JDeviceVideoCapabilities::Register(*this, &_deviceAudioCapabilityInterface);
+                        Exchange::JDeviceVideoCapabilities::Register(*this, _deviceVideoCapabilityInterface);
                         _addressMetadata = _deviceInfo->QueryInterface<Exchange::IAddressMetadata>();
                         if (_addressMetadata == nullptr) {
                             message = _T("AddressMetadata Interface could not be instantiated");
                         } else {
-                            Exchange::JAddressMetadata::Register(*this, &_addressMetadata);
+                            Exchange::JAddressMetadata::Register(*this, _addressMetadata);
                         }
                         _deviceMetadata = _deviceInfo->QueryInterface<Exchange::IDeviceMetadata>();
                         if (_deviceMetadata == nullptr) {
                             message = _T("DeviceMetadata Interface could not be instantiated");
                         } else {
-                            Exchange::JDeviceMetadata::Register(*this, &_deviceMetadata);
+                            Exchange::JDeviceMetadata::Register(*this, _deviceMetadata);
                         }
                         _imageMetadata = _deviceInfo->QueryInterface<Exchange::IImageMetadata>();
                         if (_imageMetadata == nullptr) {
                             message = _T("ImageMetadata Interface could not be instantiated");
                         } else {
-                            Exchange::JImageMetadata::Register(*this, &_imageMetadata);
+                            Exchange::JImageMetadata::Register(*this, _imageMetadata);
                         }
                         _socketMetadata = _deviceInfo->QueryInterface<Exchange::ISocketMetadata>();
                         if (_socketMetadata == nullptr) {
                             message = _T("SocketMetadata Interface could not be instantiated");
                         } else {
-                            Exchange::JSocketMetadata::Register(*this, &_socketMetadata);
+                            Exchange::JSocketMetadata::Register(*this, _socketMetadata);
                         }
                         _systemMetadata = _deviceInfo->QueryInterface<Exchange::ISystemMetadata>();
                         if (_systemMetadata == nullptr) {
                             message = _T("SystemMetadata Interface could not be instantiated");
                         } else {
-                            Exchange::JSystemMetadata::Register(*this, &_systemMetadata);
+                            Exchange::JSystemMetadata::Register(*this, _systemMetadata);
                         }
 #endif
                     }
                 }
             }
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         }
+#endif
 
         // On success return empty, to indicate there is no error text.
         return message;
@@ -127,11 +144,13 @@ namespace Plugin {
 
             _service->Unregister(&_notification);
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             if (_subSystem != nullptr) {
                 _subSystem->Unregister(&_notification);
                 _subSystem->Release();
                 _subSystem = nullptr;
             }
+#endif
 
             if (_deviceInfo != nullptr){
 
@@ -480,7 +499,6 @@ namespace Plugin {
             response.Sku = localresult;
         }
     }
-#endif
 
     void DeviceInfo::UpdateDeviceIdentifier()
     {
@@ -502,6 +520,7 @@ namespace Plugin {
             }
         }
     }
+#endif
 
     void DeviceInfo::Deactivated(RPC::IRemoteConnection* connection)
     {

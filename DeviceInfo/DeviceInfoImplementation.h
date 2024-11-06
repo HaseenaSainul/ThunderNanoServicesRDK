@@ -194,9 +194,18 @@ namespace Plugin {
             , _serialNumber()
             , _sku()
             , _platformName()
+            , _deviceId()
+            , _service(nullptr)
+            , _adminLock()
         {
         }
-        ~DeviceInfoImplementation() {}
+        ~DeviceInfoImplementation() 
+        {
+            if (_service != nullptr) {
+                _service->Release();
+                _service = nullptr;
+            }
+        }
 
         BEGIN_INTERFACE_MAP(DeviceInfoImplementation)
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
@@ -210,7 +219,7 @@ namespace Plugin {
         INTERFACE_ENTRY(Exchange::IConfiguration)
         END_INTERFACE_MAP
 
-        uint32_t Configure(const PluginHost::IShell* service) override;
+        uint32_t Configure(PluginHost::IShell* service) override;
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         Core::hresult AudioOutputs(IAudioOutputIterator*& res) const override;
@@ -254,6 +263,9 @@ namespace Plugin {
         Core::hresult PlatformName(string& value) const override;
 
     private:
+        string DeviceIdentifier();
+
+    private:
         Config _config;
         bool _supportsHdr;
         bool _supportsAtmos;
@@ -270,6 +282,9 @@ namespace Plugin {
         string _serialNumber;
         string _sku;
         string _platformName;
+        string _deviceId;
+        PluginHost::IShell* _service;
+        mutable Core::CriticalSection _adminLock;
     };
 } //namespace Thunder
 } //namespace Plugin

@@ -40,7 +40,12 @@ namespace Plugin {
     public:
 
     private:
-        class Notification : public PluginHost::ISubSystem::INotification, public RPC::IRemoteConnection::INotification {
+        class Notification : public RPC::IRemoteConnection::INotification
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                             , public PluginHost::ISubSystem::INotification
+#endif
+        {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         private:
             class Job {
             public:
@@ -59,6 +64,7 @@ namespace Plugin {
             private:
                 DeviceInfo& _parent;
             };
+#endif
 
         public:
             Notification() = delete;
@@ -67,17 +73,24 @@ namespace Plugin {
 
             explicit Notification(DeviceInfo& parent)
                 : _parent(parent)
-                , _job(parent) {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                , _job(parent)
+#endif
+            {
             }
             ~Notification() override {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 _job.Revoke();
+#endif
             }
 
         public:
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             // Some changes happened in the subsystems
             void Updated() override {
                 _job.Submit();
             }
+#endif
             void Activated(RPC::IRemoteConnection* /* connection */) override {
             }
             void Deactivated(RPC::IRemoteConnection* connection) override {
@@ -87,13 +100,17 @@ namespace Plugin {
             }
 
             BEGIN_INTERFACE_MAP(Notification)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 INTERFACE_ENTRY(PluginHost::ISubSystem::INotification)
+#endif
                 INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
 
         private:
             DeviceInfo& _parent;
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             Core::WorkerPool::JobType<Job> _job;
+#endif
         };
 
     public:
@@ -102,8 +119,10 @@ namespace Plugin {
         DeviceInfo()
             : _skipURL(0)
             , _service(nullptr)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _subSystem(nullptr)
             , _deviceId()
+#endif
             , _deviceInfo(nullptr)
             , _deviceAudioCapabilityInterface(nullptr)
             , _deviceVideoCapabilityInterface(nullptr)
@@ -113,7 +132,9 @@ namespace Plugin {
             , _socketMetadata(nullptr)
             , _systemMetadata(nullptr)
             , _connectionId(0)
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _adminLock()
+#endif
             , _notification(*this)
         {
         }
@@ -213,8 +234,10 @@ namespace Plugin {
     private:
         uint8_t _skipURL;
         PluginHost::IShell* _service;
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         PluginHost::ISubSystem* _subSystem;
         string _deviceId;
+#endif
         Exchange::IDeviceInfo* _deviceInfo;
         Exchange::IDeviceAudioCapabilities* _deviceAudioCapabilityInterface;
         Exchange::IDeviceVideoCapabilities* _deviceVideoCapabilityInterface;
@@ -225,7 +248,9 @@ namespace Plugin {
         Exchange::ISystemMetadata* _systemMetadata;
 
         uint32_t _connectionId;
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         mutable Core::CriticalSection _adminLock;
+#endif
         Core::SinkType<Notification> _notification;
     };
 
