@@ -378,6 +378,8 @@ namespace Plugin {
 #endif
 
     private:
+        using Notifications = std::vector<Exchange::IMonitor::INotification*>;
+
         Monitor(const Monitor&);
         Monitor& operator=(const Monitor&);
 
@@ -682,18 +684,28 @@ POP_WARNING()
             {
                 return (static_cast<uint32_t>(_monitor.size()));
             }
-            inline void Update(
+            inline void RestartInfo(
                 const string& observable,
-                const uint16_t restartWindow,
-                const uint8_t restartLimit)
+                const Exchange::IMonitor::RestartInfo& restartInfo)
             {
                 MonitorObjectContainer::iterator index(_monitor.find(observable));
                 if (index != _monitor.end()) {
                     index->second.UpdateRestartLimits(
-                        restartWindow,
-                        restartLimit);
+                        restartInfo.window,
+                        restartInfo.limit);
                 }
             }
+            inline void RestartInfo(
+                const string& observable,
+                Exchange::IMonitor::RestartInfo& restartInfo) const
+            {
+                MonitorObjectContainer::const_iterator index(_monitor.find(observable));
+                if (index != _monitor.end()) {
+                    restartInfo.window = index->second.RestartWindow();
+                    restartInfo.limit = index->second.RestartLimit();
+                }
+            }
+
             inline void Open(PluginHost::IShell* service, Core::JSON::ArrayType<Config::Entry>::Iterator& index)
             {
                 ASSERT((service != nullptr) && (_service == nullptr));
@@ -746,6 +758,7 @@ POP_WARNING()
                 _service->Release();
                 _service = nullptr;
             }
+
             void Activated (const string& callsign, PluginHost::IShell* service) override
             {
                 MonitorObjectContainer::iterator index(_monitor.find(callsign));
@@ -787,12 +800,16 @@ POP_WARNING()
                             _service->Notify(message);
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "StoppedRestaring", std::to_string(index->second.RestartLimit()) + " attempts failed within the restart window");
+#else
+                            _parent.NotifyAction(callsign, Exchange::IMonitor::INotification::RESTARTING_IS_STOPPED, std::to_string(index->second.RestartLimit()) + " attempts failed within the restart window");
 #endif
                         } else {
                             const string message("{\"callsign\": \"" + callsign + "\", \"action\": \"Activate\", \"reason\": \"Automatic\" }");
                             _service->Notify(message);
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "Activate", "Automatic");
+#else
+                            _parent.NotifyAction(callsign, Exchange::IMonitor::INotification::ACTIVATE, "Automatic");
 #endif
                             TRACE(Trace::Error, (_T("Restarting %s again because we detected it misbehaved."), callsign.c_str()));
                             Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(service, PluginHost::IShell::ACTIVATED, PluginHost::IShell::AUTOMATIC));
@@ -876,41 +893,32 @@ POP_WARNING()
                 }
             }
 #else
-            void Snapshot(const string& callsign, std::list<Exchange::IMonitor::Statistics>& statistics) const
+            void Observables(std::list<string>& observables) const
             {
-                if (callsign.empty() == false) {
-                    auto element = _monitor.find(callsign);
-                    if (element != _monitor.end()) {
-                        Statistics(statistics, element->first, element->second);
-                    }
-                } else {
-                    for (auto& element : _monitor) {
-                        Statistics(statistics, element.first, element.second);
-                    }
+                for (auto& element : _monitor) {
+                    observables.push_back(element.first);
                 }
             }
 
-            void Statistics(std::list<Exchange::IMonitor::Statistics>& statistics, const string& callsign, const MonitorObject& object) const
+            Core::hresult Statistics(const string& callsign, Exchange::IMonitor::Statistics& statistics) const
             {
-                const MetaData& metaData = object.Measurement();
-                Exchange::IMonitor::Statistics info;
-                info.observable = callsign;
+                Core::hresult result = Core::ERROR_UNAVAILABLE;
+                auto element = _monitor.find(callsign);
+                if (element != _monitor.end()) {
+                    result = Core::ERROR_NONE;
+                    const MonitorObject& object = element->second;
+                    const MetaData& metaData = object.Measurement();
 
-                if (object.HasRestartAllowed()) {
-                    info.restart.limit = object.RestartLimit();
-                    info.restart.window = object.RestartWindow();
+                    if (metaData.HasMeasurements() == true) {
+                        translate(metaData.Allocated(), &statistics.allocated);
+                        translate(metaData.Resident(), &statistics.resident);
+                        translate(metaData.Shared(), &statistics.shared);
+                        translate(metaData.Process(), &statistics.process);
+                    }
+                    statistics.operational = object.Operational();
+                    statistics.count = metaData.Allocated().Measurements();
                 }
-
-                if (metaData.HasMeasurements() == true) {
-                    translate(metaData.Allocated(), &info.measurements.allocated);
-                    translate(metaData.Resident(), &info.measurements.resident);
-                    translate(metaData.Shared(), &info.measurements.shared);
-                    translate(metaData.Process(), &info.measurements.process);
-                }
-                info.measurements.operational = object.Operational();
-                info.measurements.count = metaData.Allocated().Measurements();
-
-                statistics.push_back(info);
+                return result;
             }
 #endif
             bool Reset(const string& name, Monitor::MetaData& result, bool& operational)
@@ -981,6 +989,8 @@ POP_WARNING()
 
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                                 _parent.event_action(plugin->Callsign(), "Deactivate", why.Data());
+#else
+                                _parent.NotifyAction(plugin->Callsign(), Exchange::IMonitor::INotification::DEACTIVATE, why.Data());
 #endif
 
                                 Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(plugin, PluginHost::IShell::DEACTIVATED, why.Value()));
@@ -1047,6 +1057,10 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
         Monitor()
             : _skipURL(0)
             , _monitor(this)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+            , _notifications()
+            , _adminLock()
+#endif
         {
         }
 POP_WARNING()
@@ -1054,6 +1068,9 @@ POP_WARNING()
 
         BEGIN_INTERFACE_MAP(Monitor)
         INTERFACE_ENTRY(PluginHost::IPlugin)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        INTERFACE_ENTRY(Exchange::IMonitor)
+#endif
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         END_INTERFACE_MAP
 
@@ -1080,9 +1097,16 @@ POP_WARNING()
         string Information() const override;
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        uint32_t RestartLimits(const Exchange::IMonitor::RestartLimitsInfo& params) override;
-        uint32_t ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics) override;
-        uint32_t Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const override;
+        // IMonitor methods
+        Core::hresult Register(Exchange::IMonitor::INotification* notification) override;
+        Core::hresult Unregister(Exchange::IMonitor::INotification* notification) override;
+        Core::hresult RestartLimits(const string& callsign, const Exchange::IMonitor::RestartInfo& params) override;
+        Core::hresult RestartLimits(const string& callsign, Exchange::IMonitor::RestartInfo& params) const override;
+        Core::hresult Reset(const string& callsign) override;
+        Core::hresult Observables(Exchange::IMonitor::IStringIterator*& observables) const override;
+        Core::hresult StatisticsInfo(const string& callsign, Exchange::IMonitor::Statistics& statistics) const override;
+        void NotifyAction(const string& callsign, const Exchange::IMonitor::INotification::action action, const string& reason);
+
     private:
 #endif
 
@@ -1090,6 +1114,10 @@ POP_WARNING()
         uint8_t _skipURL;
         Config _config;
         Core::SinkType<MonitorObjects> _monitor;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        Notifications _notifications;
+        mutable Core::CriticalSection _adminLock;
+#endif
 
     private:
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)

@@ -239,11 +239,11 @@ namespace Plugin {
         Core::hresult Resolutions(const VideoOutput videoOutput, ScreenResolution& resolutions) const override;
         Core::hresult DeviceVideoCapabilities(string& edid, bool& hdr, bool& atmos, bool& cec, IVideoOutputCapsIterator*& videoOutputCaps) const override;
 
-        Core::hresult AddressInfo(IAddressIterator*& ip) const override;
-        Core::hresult DeviceData(Device& value) const override;
-        Core::hresult FirmwareInfo(Firmware& value) const override;
-        Core::hresult SystemInfo(System& value) const override;
-        Core::hresult SocketInfo(Socket& value) const override;
+        Core::hresult AddressMetadata(IAddressIterator*& ip) const override;
+        Core::hresult DeviceMetadata(Device& value) const override;
+        Core::hresult ImageMetadata(Firmware& value) const override;
+        Core::hresult SystemMetadata(System& value) const override;
+        Core::hresult SocketMetadata(Socket& value) const override;
 #endif
         Core::hresult DefaultResolution(const VideoOutput videoOutput, ScreenResolution& defaultResolution) const override;
         Core::hresult Hdcp(const VideoOutput videoOutput, CopyProtection& hdcpVersion) const override;

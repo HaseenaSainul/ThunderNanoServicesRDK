@@ -1539,26 +1539,9 @@ POP_WARNING()
         }
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        uint32_t Systems(Exchange::IOCDM::IDrmIterator*& drms) const
+        uint32_t Systems(Exchange::IOCDM::IStringIterator*& drms) const
         {
-            std::list<Exchange::IOCDM::Drm> drmList;
-            RPC::IStringIterator* drmsIter(Systems());
-            if (drmsIter != nullptr) {
-                string element;
-                IOCDM::Drm drm;
-                while (drmsIter->Next(element) == true) {
-                    drm.name = element;
-                }
-                drmList.push_back(drm);
-/*                KeySystems(element, drm.Keysystems);
-                response.Add(drm);*/
-            }
-            drmsIter->Release();
-            if (drmList.empty() != false) {
-                using Iterator = Exchange::IOCDM::IDrmIterator;
-
-                drms = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(drmList);
-            }
+            drms = Systems();
             return (drms != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
         }
 

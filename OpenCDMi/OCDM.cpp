@@ -141,12 +141,14 @@ namespace Plugin {
                 else {
                     message = _T("OCDM crashed at initialize!");
                 }
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 _ocdm = _opencdmi->QueryInterface<Exchange::IOCDM>();
                 if (_ocdm == nullptr) {
                     SYSLOG(Logging::Startup, (_T("OCDM service is unavailable.")));
                 } else {
                     Exchange::JOCDM::Register(*this, _ocdm);
                 }
+#endif
             }
         }
 

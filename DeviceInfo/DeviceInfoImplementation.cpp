@@ -483,7 +483,7 @@ namespace Plugin {
         return (videoOutputCaps != nullptr ? Core::ERROR_NONE : Core::ERROR_GENERAL);
     }
 
-    Core::hresult DeviceInfoImplementation::AddressInfo(IAddressIterator*& ip) const
+    Core::hresult DeviceInfoImplementation::AddressMetadata(IAddressIterator*& ip) const
     {
         // Get the point of entry on Thunder..
         Core::AdapterIterator interfaces;
@@ -500,10 +500,6 @@ namespace Plugin {
 
             while (selectedNode.Next() == true) {
                 ip.Add() = selectedNode.Address().HostAddress();
-//                Core::JSON::String nodeName;
-//                nodeName = selectedNode.Address().HostAddress();
-
-//                element.Ip.Add() = nodeName);
             }
             ip.ToString(address.ip);
 
@@ -519,7 +515,7 @@ namespace Plugin {
 
     }
 
-    Core::hresult DeviceInfoImplementation::DeviceData(Device& device) const
+    Core::hresult DeviceInfoImplementation::DeviceMetadata(Device& device) const
     {
         string value;
         if (DeviceType(value) == Core::ERROR_NONE) {
@@ -554,7 +550,7 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::FirmwareInfo(Firmware& firmware VARIABLE_IS_NOT_USED) const
+    Core::hresult DeviceInfoImplementation::ImageMetadata(Firmware& firmware VARIABLE_IS_NOT_USED) const
     {
         return Core::ERROR_UNAVAILABLE;
     }
@@ -586,7 +582,7 @@ namespace Plugin {
         return _deviceId;
     }
 
-    Core::hresult DeviceInfoImplementation::SystemInfo(System& system) const
+    Core::hresult DeviceInfoImplementation::SystemMetadata(System& system) const
     {
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());
 
@@ -607,7 +603,7 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::SocketInfo(Socket& socket) const
+    Core::hresult DeviceInfoImplementation::SocketMetadata(Socket& socket) const
     {
         socket.runs = Core::ResourceMonitor::Instance().Runs();
         return Core::ERROR_NONE;

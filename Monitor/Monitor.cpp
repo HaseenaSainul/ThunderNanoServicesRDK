@@ -84,31 +84,81 @@ namespace Plugin {
     }
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    /* virtual */ uint32_t Monitor::RestartLimits(const Exchange::IMonitor::RestartLimitsInfo& params)
+    void Monitor::NotifyAction(const string& callsign, const Exchange::IMonitor::INotification::action action, const string& reason)
     {
-        _monitor.Update(params.callsign, params.restart.window, params.restart.limit);
+        _adminLock.Lock();
+        for (auto* notification : _notifications) {
+            notification->Action(callsign, action, reason);
+        }
+        _adminLock.Unlock();
+    }
+
+    /* virtual */ Core::hresult Monitor::Register(Exchange::IMonitor::INotification* notification)
+    {
+        ASSERT(notification);
+
+        _adminLock.Lock();
+        auto item = std::find(_notifications.begin(), _notifications.end(), notification);
+        ASSERT(item == _notifications.end());
+        if (item == _notifications.end()) {
+            notification->AddRef();
+            _notifications.push_back(notification);
+        }
+        _adminLock.Unlock();
+
+        return Core::ERROR_NONE;
+    }
+    /* virtual */ Core::hresult Monitor::Unregister(Exchange::IMonitor::INotification* notification)
+    {
+        ASSERT(notification);
+
+        _adminLock.Lock();
+        auto item = std::find(_notifications.begin(), _notifications.end(), notification);
+        ASSERT(item != _notifications.end());
+        _notifications.erase(item);
+        (*item)->Release();
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+
+    /* virtual */ Core::hresult Monitor::RestartLimits(const string& callsign, const Exchange::IMonitor::RestartInfo& params)
+    {
+        _monitor.RestartInfo(callsign, params);
 
         return Core::ERROR_NONE;
     }
 
-    /* virtual */ uint32_t Monitor::ResetStats(const string& callsign, Exchange::IMonitor::Statistics& statistics)
+    /* virtual */ Core::hresult Monitor::RestartLimits(const string& callsign, Exchange::IMonitor::RestartInfo& params) const
     {
-        std::list<Exchange::IMonitor::Statistics> statisticsList;
-        _monitor.Snapshot(callsign, statisticsList);
-        if (statisticsList.size() == 1) {
+        _monitor.RestartInfo(callsign, params);
+
+        return Core::ERROR_NONE;
+    }
+    /* virtual */ Core::hresult Monitor::Reset(const string& callsign)
+    {
+        if (callsign.empty() != false) {
             _monitor.Reset(callsign);
-            statistics = statisticsList.front();
         }
         return Core::ERROR_NONE;
     }
-
-    /* virtual */ uint32_t Monitor::Status(const string& callsign, Exchange::IMonitor::IStatisticsIterator*& statistics) const
+    /* virtual */ Core::hresult Monitor::Observables(Exchange::IMonitor::IStringIterator*& observables) const
     {
-        std::list<Exchange::IMonitor::Statistics> statisticsList;
-        _monitor.Snapshot(callsign, statisticsList);
-        using Iterator = Exchange::IMonitor::IStatisticsIterator;
-        statistics = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(statisticsList); 
-        return Core::ERROR_NONE;
+        std::list<string> observableList;
+        _monitor.Observables(observableList);
+        if (observableList.empty() != false) {
+            using Iterator = Exchange::IMonitor::IStringIterator;
+            observables = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(observableList);
+	}
+        return (observables != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
+
+    }
+    /* virtual */ Core::hresult Monitor::StatisticsInfo(const string& callsign, Exchange::IMonitor::Statistics& statistics) const
+    {
+        Core::hresult result = Core::ERROR_UNAVAILABLE;
+        if (callsign.empty() == false) {
+            result = _monitor.Statistics(callsign, statistics);
+        }
+        return result;
     }
 #endif
 
