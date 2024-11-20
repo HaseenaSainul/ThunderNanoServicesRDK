@@ -211,82 +211,7 @@ namespace Plugin {
         return { };
     }
 
-    /* virtual */ void WebKitBrowser::Inbound(Web::Request& request)
-    {
-        if (request.Verb == Web::Request::HTTP_POST) {
-            request.Body(_jsonBodyDataFactory.Element());
-        }
-    }
-
-    /* virtual */ Core::ProxyType<Web::Response> WebKitBrowser::Process(const Web::Request& request)
-    {
-        ASSERT(_skipURL <= request.Path.length());
-
-        TRACE(Trace::Information, (string(_T("Received request"))));
-
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-        Core::TextSegmentIterator index(
-            Core::TextFragment(request.Path, _skipURL, request.Path.length() - _skipURL), false, '/');
-
-        result->ErrorCode = Web::STATUS_BAD_REQUEST;
-        result->Message = "Unknown error";
-
-        if (_browser != nullptr) {
-
-            PluginHost::IStateControl* stateControl(_browser->QueryInterface<PluginHost::IStateControl>());
-
-            ASSERT(stateControl != nullptr);
-            ASSERT(_application != nullptr);
-
-            if (request.Verb == Web::Request::HTTP_GET) {
-                bool visible = false;
-                static_cast<const Thunder::Exchange::IApplication*>(_application)->Visible(visible);
-                PluginHost::IStateControl::state currentState = stateControl->State();
-                Core::ProxyType<Web::JSONBodyType<WebKitBrowser::Data>> body(_jsonBodyDataFactory.Element());
-                ASSERT(body.IsValid() == true);
-                string url;
-                static_cast<const Thunder::Exchange::IWebBrowser*>(_browser)->URL(url);
-                body->URL = url;
-                uint8_t fps = 0;
-                _browser->FPS(fps);
-                body->FPS = fps;
-                body->Suspended = (currentState == PluginHost::IStateControl::SUSPENDED);
-                body->Hidden = !visible;
-                result->ErrorCode = Web::STATUS_OK;
-                result->Message = "OK";
-                result->Body<Web::JSONBodyType<WebKitBrowser::Data>>(body);
-            } else if ((request.Verb == Web::Request::HTTP_POST) && (index.Next() == true) && (index.Next() == true)) {
-                result->ErrorCode = Web::STATUS_OK;
-                result->Message = "OK";
-
-                // We might be receiving a plugin download request.
-                if (index.Remainder() == _T("Suspend")) {
-                    stateControl->Request(PluginHost::IStateControl::SUSPEND);
-                } else if (index.Remainder() == _T("Resume")) {
-                    stateControl->Request(PluginHost::IStateControl::RESUME);
-                } else if (index.Remainder() == _T("Hide")) {
-                    _browser->Visibility(Exchange::IWebBrowser::VisibilityType::HIDDEN);
-                } else if (index.Remainder() == _T("Show")) {
-                    _browser->Visibility(Exchange::IWebBrowser::VisibilityType::VISIBLE);
-                } else if ((index.Remainder() == _T("URL")) && (request.HasBody() == true) && (request.Body<const Data>()->URL.Value().empty() == false)) {
-                    const string url = request.Body<const Data>()->URL.Value();
-                    _browser->URL(url);
-                } else if ((index.Remainder() == _T("Delete")) && (request.HasBody() == true) && (request.Body<const Data>()->Path.Value().empty() == false)) {
-                    if (DeleteDir(request.Body<const Data>()->Path.Value()) != Core::ERROR_NONE) {
-                        result->ErrorCode = Web::STATUS_BAD_REQUEST;
-                        result->Message = "Unknown error";
-                    }
-                } else {
-                    result->ErrorCode = Web::STATUS_BAD_REQUEST;
-                    result->Message = "Unknown error";
-                }
-            }
-            stateControl->Release();
-        }
-
-        return result;
-    }
-
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
     uint32_t WebKitBrowser::DeleteDir(const string& path)
     {
         uint32_t result = Core::ERROR_NONE;
@@ -302,6 +227,7 @@ namespace Plugin {
 
         return result;
     }
+#endif
 
     void WebKitBrowser::LoadFinished(const string& URL, int32_t code)
     {

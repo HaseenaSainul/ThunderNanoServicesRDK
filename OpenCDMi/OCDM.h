@@ -155,11 +155,12 @@ POP_WARNING()
     public:
         BEGIN_INTERFACE_MAP(OCDM)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
-#endif
         INTERFACE_AGGREGATE(Exchange::IContentDecryption, _opencdmi)
         INTERFACE_AGGREGATE(Exchange::IMemory, _memory)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        INTERFACE_AGGREGATE(Exchange::IOCDM, _ocdm)
+#endif
         END_INTERFACE_MAP
 
     public:

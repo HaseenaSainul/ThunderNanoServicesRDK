@@ -41,7 +41,7 @@ namespace WebKitBrowser {
 
 namespace Plugin {
 
-    class WebKitBrowser : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
+    class WebKitBrowser : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     private:
         class Notification : public RPC::IRemoteConnection::INotification,
                              public PluginHost::IStateControl::INotification,
@@ -177,7 +177,6 @@ namespace Plugin {
     public:
         BEGIN_INTERFACE_MAP(WebKitBrowser)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-        INTERFACE_ENTRY(PluginHost::IWeb)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(PluginHost::IStateControl, _browser)
         INTERFACE_AGGREGATE(Exchange::IBrowser, _browser)
@@ -210,11 +209,6 @@ namespace Plugin {
         // to this plugin. This Metadata can be used by the MetData plugin to publish this information to the ouside world.
         string Information() const override;
 
-        //  IWeb methods
-        // -------------------------------------------------------------------------------------------------------
-        void Inbound(Web::Request& request) override;
-        Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
-
     private:
         void Deactivated(RPC::IRemoteConnection* connection);
         void LoadFinished(const string& URL, int32_t code);
@@ -224,8 +218,10 @@ namespace Plugin {
         void PageClosure();
         void BridgeQuery(const string& message);
         void StateChange(const PluginHost::IStateControl::state state);
-        uint32_t DeleteDir(const string& path);
         void CookieJarChanged();
+
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        uint32_t DeleteDir(const string& path);
 
         // JsonRpc
         void RegisterAll();
@@ -239,6 +235,7 @@ namespace Plugin {
         uint32_t set_headers(const Core::JSON::ArrayType<JsonData::WebKitBrowser::HeadersData>& param);
         void event_bridgequery(const string& message);
         void event_statechange(const bool& suspended); // StateControl
+#endif
 
     private:
         uint8_t _skipURL;

@@ -233,8 +233,14 @@ find_package(WPEBackend REQUIRED)
 add_library(${MODULE_NAME} SHARED
     Module.cpp
     WebKitBrowser.cpp
-    WebKitBrowserJsonRpc.cpp
 )
+
+if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        WebKitBrowserJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11

@@ -393,8 +393,12 @@ static GSourceFuncs _handlerIntervention =
                                  public Exchange::IBrowserCookieJar,
 #endif
                                  public PluginHost::IStateControl,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                                 public Exchange::IStateControl,
+#endif
                                  public PluginHost::ISubSystem::INotification {
     public:
+        using Headers = list<HeadersInfo>;
         class BundleConfig : public Core::JSON::Container {
         private:
             using BundleConfigMap = std::map<string, Core::JSON::String>;
@@ -991,6 +995,7 @@ static GSourceFuncs _handlerIntervention =
         }
 
     public:
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         uint32_t HeaderList(string& headerlist) const override
         {
             _adminLock.Lock();
@@ -1041,7 +1046,8 @@ static GSourceFuncs _handlerIntervention =
 
             return Core::ERROR_NONE;
         }
-
+#endif
+#endif
         uint32_t UserAgent(string& ua) const override
         {
             _adminLock.Lock();
@@ -1967,7 +1973,7 @@ static GSourceFuncs _handlerIntervention =
             // Make sure a sink is not registered multiple times.
             ASSERT(index == _notificationBrowserClients.end());
 
-	    if (index == _notificationBrowserClients.end()) {
+            if (index == _notificationBrowserClients.end()) {
                 _notificationBrowserClients.push_back(sink);
                 sink->AddRef();
             }
@@ -2121,7 +2127,11 @@ static GSourceFuncs _handlerIntervention =
                       (error.IsSet() ? error.Value().Message().c_str() : "unknown"), language.c_str()));
                 return Core::ERROR_GENERAL;
             }
+            return Languages(array);
+        }
 
+	uint32_t Languages(Core::JSON::ArrayType<Core::JSON::String>& array)
+	{
             using SetLanguagesData = std::tuple<WebKitImplementation*, Core::JSON::ArrayType<Core::JSON::String> >;
             auto* data = new SetLanguagesData(this, array);
             g_main_context_invoke_full(
@@ -2171,6 +2181,129 @@ static GSourceFuncs _handlerIntervention =
 
             return Core::ERROR_NONE;
         }
+
+        uint32_t Languages(Exchange::IWebBrowser::IStringIterator*& languages) const override
+        {
+            list<string> languageList;
+            _adminLock.Lock();
+            Core::JSON::ArrayType<Core::JSON::String> langsArray = _config.Languages;
+            _adminLock.Unlock();
+
+            for (auto& element : langsArray) {
+                languageList.push_back(*element);
+            }
+	    if (languageList.empty() != false) {
+                using Iterator = Exchange::IWebBrowser::IStringIterator;
+                languages = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(observableList);
+            }
+            return (languages != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
+        }
+
+        uint32_t Languages(Exchange::IWebBrowser::IStringIterator* const languages) override
+        {
+            string language;
+            Core::JSON::ArrayType<Core::JSON::String> languageList;
+            while (languages->Next(language) == true) {
+                languageList.Add() = language;
+            }
+
+            return Languages(languageList);
+        }
+
+        uint32_t Headers(Exchange::IWebBrowser::IHeadersIterator*& headers) const override
+        {
+            _adminLock.Lock();
+            if (_headers.empty() != true) {
+                using Iterator = Exchange::IWebBrowser::IHeadersIterator;
+                
+                headers = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(_headers);
+	    }
+            _adminLock.Unlock();
+            return (headers != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
+        }
+
+        uint32_t Headers(Exchange::IWebBrowser::IHeadersIterator* const headers) override
+        {
+            IExchange::IWebBrowser::HeadersInfo header;
+            Headers headerList;
+            if (headers) {
+                while (headers->Next(header) == true) {
+                    headerList.push_back(header);
+		}
+	    }
+
+            if ((_context != nullptr) && (headerList.empty() != true)) {
+                using SetHeadersData = std::tuple<WebKitImplementation*, Headers>;
+                auto* data = new SetHeadersData(this, headerList);
+
+                g_main_context_invoke_full(
+                    _context,
+                    G_PRIORITY_DEFAULT,
+                    [](gpointer customdata) -> gboolean {
+                        auto& data = *static_cast<SetHeadersData*>(customdata);
+                        WebKitImplementation* object = std::get<0>(data);
+                        ASSERT(object != nullptr);
+
+                        const Headers& headers = std::get<1>(data);
+
+                        object->_adminLock.Lock();
+                        object->_headers = headers;
+                        object->_adminLock.Unlock();
+#ifdef WEBKIT_GLIB_API
+                        webkit_web_view_send_message_to_page(object->_view,
+                                webkit_user_message_new(Tags::Headers, g_variant_new("s", headers.c_str())),
+                                nullptr, nullptr, nullptr);
+#else
+                        auto messageName = WKStringCreateWithUTF8CString(Tags::Headers);
+                        auto messageBody = WKStringCreateWithUTF8CString(headers.c_str());
+
+                        WKPagePostMessageToInjectedBundle(object->_page, messageName, messageBody);
+
+                        WKRelease(messageBody);
+                        WKRelease(messageName);
+#endif
+                        return G_SOURCE_REMOVE;
+                    },
+                    data,
+                    [](gpointer customdata) {
+                        delete static_cast<SetHeadersData*>(customdata);
+                    });
+            }
+
+            return Core::ERROR_NONE;
+
+        }
+
+	Core::hresult State(Exchange::IStateControl::StateType& state) const override
+	{
+            _adminLock.Lock();
+            PluginHost::IStateControl::state currentState = _state;
+            _adminLock.Unlock();
+            state = (currentState == PluginHost::IStateControl::SUSPENDED? StateType::SUSPENDED : StateType::RESUMED);
+
+            return Core::ERROR_NONE;
+	}
+
+        Core::hresult State(const Exchange::IStateControl::StateType state) override
+	{
+            return Request(state == StateType::SUSPENDED? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
+	}
+
+	void StateChange(const bool& suspended) override
+	{
+            _adminLock.Lock();
+
+            _URL = URL;
+            {
+                std::list<Exchange::IWebBrowser::INotification*>::iterator index(_notificationClients.begin());
+
+                while (index != _notificationClients.end()) {
+                    (*index)->LoadFinished(URL, _httpStatusCode);
+                    index++;
+                }
+            }
+
+	}
 
         void OnURLChanged(const string& URL)
         {
@@ -2644,6 +2777,9 @@ static GSourceFuncs _handlerIntervention =
         INTERFACE_ENTRY (Exchange::IBrowserCookieJar)
 #endif
         INTERFACE_ENTRY(PluginHost::IStateControl)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        INTERFACE_ENTRY(Exchange::IStateControl)
+#endif
         INTERFACE_ENTRY(PluginHost::ISubSystem::INotification)
         END_INTERFACE_MAP
 
@@ -3710,7 +3846,11 @@ static GSourceFuncs _handlerIntervention =
         string _URL;
         string _dataPath;
         PluginHost::IShell* _service;
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         string _headers;
+#else
+        Headers _headers;
+#endif
         bool _localStorageEnabled;
         int32_t _httpStatusCode;
 
