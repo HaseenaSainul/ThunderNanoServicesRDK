@@ -26,12 +26,17 @@
 #include <interfaces/IMemory.h>
 
 #include <interfaces/json/JsonData_Browser.h>
-#include <interfaces/json/JsonData_WebKitBrowser.h>
-#include <interfaces/json/JsonData_StateControl.h>
-#include <interfaces/json/JWebBrowser.h>
 #include <interfaces/json/JBrowserScripting.h>
 #include <interfaces/json/JBrowserCookieJar.h>
+#include <interfaces/json/JWebBrowser.h>
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#include <interfaces/json/JsonData_StateControl.h>
+#include <interfaces/json/JsonData_WebKitBrowser.h>
+#else
+#include <plugins/json/JsonData_StateControl.h>
+#include <plugins/json/JStateControl.h>
+#endif
 namespace Thunder {
 
 namespace WebKitBrowser {
@@ -153,6 +158,7 @@ namespace Plugin {
             , _browser(nullptr)
             , _memory(nullptr)
             , _application(nullptr)
+            , _stateControl(nullptr)
             , _browserScripting(nullptr)
             , _cookieJar(nullptr)
             , _notification(this)
@@ -178,7 +184,7 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(WebKitBrowser)
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
-        INTERFACE_AGGREGATE(PluginHost::IStateControl, _browser)
+        INTERFACE_AGGREGATE(PluginHost::IStateControl, _stateControl)
         INTERFACE_AGGREGATE(Exchange::IBrowser, _browser)
         INTERFACE_AGGREGATE(Exchange::IApplication, _application)
         INTERFACE_AGGREGATE(Exchange::IWebBrowser, _browser)
@@ -244,6 +250,7 @@ namespace Plugin {
         Exchange::IWebBrowser* _browser;
         Exchange::IMemory* _memory;
         Exchange::IApplication* _application;
+        PluginHost::IStateControl* _stateControl;
         Exchange::IBrowserScripting* _browserScripting;
         Exchange::IBrowserCookieJar* _cookieJar;
         Core::SinkType<Notification> _notification;

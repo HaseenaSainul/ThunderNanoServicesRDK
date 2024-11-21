@@ -29,6 +29,9 @@
 #include <interfaces/IBrowser.h>
 #include <interfaces/IApplication.h>
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#include <interfaces/json/JWebBrowser.h>
+#endif
 
 #ifdef WEBKIT_GLIB_API
 #include <wpe/webkit.h>
@@ -393,12 +396,12 @@ static GSourceFuncs _handlerIntervention =
                                  public Exchange::IBrowserCookieJar,
 #endif
                                  public PluginHost::IStateControl,
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-                                 public Exchange::IStateControl,
-#endif
                                  public PluginHost::ISubSystem::INotification {
     public:
-        using Headers = list<HeadersInfo>;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        using HeaderInfoList = std::list<Exchange::IWebBrowser::HeaderInfo>;
+#endif
+
         class BundleConfig : public Core::JSON::Container {
         private:
             using BundleConfigMap = std::map<string, Core::JSON::String>;
@@ -898,6 +901,9 @@ static GSourceFuncs _handlerIntervention =
             , _dataPath()
             , _service(nullptr)
             , _headers()
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+            , _headersInfo()
+#endif
             , _localStorageEnabled(false)
             , _httpStatusCode(-1)
 #ifdef WEBKIT_GLIB_API
@@ -995,7 +1001,6 @@ static GSourceFuncs _handlerIntervention =
         }
 
     public:
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         uint32_t HeaderList(string& headerlist) const override
         {
             _adminLock.Lock();
@@ -1043,11 +1048,8 @@ static GSourceFuncs _handlerIntervention =
                         delete static_cast<SetHeadersData*>(customdata);
                     });
             }
-
             return Core::ERROR_NONE;
         }
-#endif
-#endif
         uint32_t UserAgent(string& ua) const override
         {
             _adminLock.Lock();
@@ -1814,9 +1816,20 @@ static GSourceFuncs _handlerIntervention =
             return 0;
         }
 
-        PluginHost::IStateControl::state State() const override
+        uint32_t State(PluginHost::IStateControl::state& state) const override
         {
-            return (_state);
+            _adminLock.Lock();
+            state = _state;
+            _adminLock.Unlock();
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t State(const PluginHost::IStateControl::state state) override
+        {
+            _adminLock.Lock();
+            _state = state;
+            _adminLock.Unlock();
+            return Request(state == PluginHost::IStateControl::SUSPENDED ? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
         }
 
         uint32_t Request(PluginHost::IStateControl::command command) override
@@ -2182,19 +2195,21 @@ static GSourceFuncs _handlerIntervention =
             return Core::ERROR_NONE;
         }
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         uint32_t Languages(Exchange::IWebBrowser::IStringIterator*& languages) const override
         {
-            list<string> languageList;
+            std::list<string> languageList;
             _adminLock.Lock();
-            Core::JSON::ArrayType<Core::JSON::String> langsArray = _config.Languages;
+	    Core::JSON::ArrayType<Core::JSON::String>::ConstIterator index(_config.Languages.Elements());
             _adminLock.Unlock();
 
-            for (auto& element : langsArray) {
-                languageList.push_back(*element);
+            while (index.Next() == true) {
+                languageList.push_back(index.Current().Value().c_str());
             }
+
 	    if (languageList.empty() != false) {
                 using Iterator = Exchange::IWebBrowser::IStringIterator;
-                languages = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(observableList);
+                languages = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(languageList);
             }
             return (languages != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
         }
@@ -2213,10 +2228,10 @@ static GSourceFuncs _handlerIntervention =
         uint32_t Headers(Exchange::IWebBrowser::IHeadersIterator*& headers) const override
         {
             _adminLock.Lock();
-            if (_headers.empty() != true) {
+            if (_headersInfo.empty() != true) {
                 using Iterator = Exchange::IWebBrowser::IHeadersIterator;
                 
-                headers = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(_headers);
+                headers = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(_headersInfo);
 	    }
             _adminLock.Unlock();
             return (headers != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
@@ -2224,8 +2239,8 @@ static GSourceFuncs _handlerIntervention =
 
         uint32_t Headers(Exchange::IWebBrowser::IHeadersIterator* const headers) override
         {
-            IExchange::IWebBrowser::HeadersInfo header;
-            Headers headerList;
+            Exchange::IWebBrowser::HeaderInfo header;
+            HeaderInfoList headerList;
             if (headers) {
                 while (headers->Next(header) == true) {
                     headerList.push_back(header);
@@ -2233,7 +2248,7 @@ static GSourceFuncs _handlerIntervention =
 	    }
 
             if ((_context != nullptr) && (headerList.empty() != true)) {
-                using SetHeadersData = std::tuple<WebKitImplementation*, Headers>;
+                using SetHeadersData = std::tuple<WebKitImplementation*, HeaderInfoList>;
                 auto* data = new SetHeadersData(this, headerList);
 
                 g_main_context_invoke_full(
@@ -2244,12 +2259,22 @@ static GSourceFuncs _handlerIntervention =
                         WebKitImplementation* object = std::get<0>(data);
                         ASSERT(object != nullptr);
 
-                        const Headers& headers = std::get<1>(data);
+                        const HeaderInfoList& headerList = std::get<1>(data);
 
                         object->_adminLock.Lock();
-                        object->_headers = headers;
+                        object->_headersInfo = headerList;
                         object->_adminLock.Unlock();
 #ifdef WEBKIT_GLIB_API
+                        Core::JSON::ArrayType<JsonData::WebBrowser::HeaderInfoInfo> jsonHeaders;
+                        for (auto& header: headerList) {
+		            JsonData::WebBrowser::HeaderInfoInfo headerInfo;
+			    headerInfo.Name = header.name;
+			    headerInfo.Value = header.value;
+                            jsonHeaders.Add() = headerInfo;
+			}
+                        string headers;
+			jsonHeaders.ToString(headers);
+
                         webkit_web_view_send_message_to_page(object->_view,
                                 webkit_user_message_new(Tags::Headers, g_variant_new("s", headers.c_str())),
                                 nullptr, nullptr, nullptr);
@@ -2273,37 +2298,7 @@ static GSourceFuncs _handlerIntervention =
             return Core::ERROR_NONE;
 
         }
-
-	Core::hresult State(Exchange::IStateControl::StateType& state) const override
-	{
-            _adminLock.Lock();
-            PluginHost::IStateControl::state currentState = _state;
-            _adminLock.Unlock();
-            state = (currentState == PluginHost::IStateControl::SUSPENDED? StateType::SUSPENDED : StateType::RESUMED);
-
-            return Core::ERROR_NONE;
-	}
-
-        Core::hresult State(const Exchange::IStateControl::StateType state) override
-	{
-            return Request(state == StateType::SUSPENDED? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
-	}
-
-	void StateChange(const bool& suspended) override
-	{
-            _adminLock.Lock();
-
-            _URL = URL;
-            {
-                std::list<Exchange::IWebBrowser::INotification*>::iterator index(_notificationClients.begin());
-
-                while (index != _notificationClients.end()) {
-                    (*index)->LoadFinished(URL, _httpStatusCode);
-                    index++;
-                }
-            }
-
-	}
+#endif
 
         void OnURLChanged(const string& URL)
         {
@@ -2376,6 +2371,7 @@ static GSourceFuncs _handlerIntervention =
 
             _adminLock.Unlock();
         }
+
         void OnStateChange(const PluginHost::IStateControl::state newState)
         {
             _adminLock.Lock();
@@ -2777,9 +2773,6 @@ static GSourceFuncs _handlerIntervention =
         INTERFACE_ENTRY (Exchange::IBrowserCookieJar)
 #endif
         INTERFACE_ENTRY(PluginHost::IStateControl)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        INTERFACE_ENTRY(Exchange::IStateControl)
-#endif
         INTERFACE_ENTRY(PluginHost::ISubSystem::INotification)
         END_INTERFACE_MAP
 
@@ -3846,10 +3839,9 @@ static GSourceFuncs _handlerIntervention =
         string _URL;
         string _dataPath;
         PluginHost::IShell* _service;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         string _headers;
-#else
-        Headers _headers;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+        HeaderInfoList _headersInfo;
 #endif
         bool _localStorageEnabled;
         int32_t _httpStatusCode;

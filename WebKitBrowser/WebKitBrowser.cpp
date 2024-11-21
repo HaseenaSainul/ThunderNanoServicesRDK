@@ -61,16 +61,18 @@ namespace Plugin {
 
         if (_browser != nullptr) {
 
-            PluginHost::IStateControl* stateControl(_browser->QueryInterface<PluginHost::IStateControl>());
+            _stateControl = _browser->QueryInterface<PluginHost::IStateControl>();
 
             // We see that sometimes the WPE implementation crashes before it reaches this point, than there is
             // no StateControl. Cope with this situation.
-            if (stateControl == nullptr) {
+            if (_stateControl == nullptr) {
                 message = _T("WebKitBrowser StateControl could not be Obtained.");
             } else {
                 _application = _browser->QueryInterface<Exchange::IApplication>();
                 if (_application != nullptr) {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                     RegisterAll();
+#endif
                     Exchange::JWebBrowser::Register(*this, _browser);
 
                     _cookieJar = _browser->QueryInterface<Exchange::IBrowserCookieJar>();
@@ -92,10 +94,13 @@ namespace Plugin {
                         connection->Release();
                     }
 
-                    if (stateControl->Configure(_service) != Core::ERROR_NONE) {
+                    if (_stateControl->Configure(_service) != Core::ERROR_NONE) {
                         message = _T("WebKitBrowser Implementation could not be Configured.");
                     } else {
-                        stateControl->Register(&_notification);
+                        _stateControl->Register(&_notification);
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                        PluginHost::JStateControl::Register(*this, _stateControl);
+#endif
                     }
                 } else {
                     message = _T("WebKitBrowser Application interface could not be obtained");
@@ -113,8 +118,6 @@ namespace Plugin {
 
                     subsystemNotify->Release();
                 }
-
-                stateControl->Release();
             }
         }
         else {
@@ -147,11 +150,14 @@ namespace Plugin {
                     subsystemNotify->Release();
                 }
 
-                PluginHost::IStateControl* stateControl(_browser->QueryInterface<PluginHost::IStateControl>());
+                _stateControl = _browser->QueryInterface<PluginHost::IStateControl>();
                 // In case WPE rpcprocess crashed, there is no access to the statecontrol interface, check it !!
-                if (stateControl != nullptr) {
-                    stateControl->Unregister(&_notification);
-                    stateControl->Release();
+                if (_stateControl != nullptr) {
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                    PluginHost::JStateControl::Unregister(*this);
+#endif
+                    _stateControl->Unregister(&_notification);
+                    _stateControl->Release();
                  }
 
                 if (_memory != nullptr) {
@@ -172,7 +178,9 @@ namespace Plugin {
                     }
 
                     Exchange::JWebBrowser::Unregister(*this);
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                     UnregisterAll();
+#endif
                     _browser->Unregister(&_notification);
                     _application->Release();
                     _application = nullptr;
@@ -276,7 +284,12 @@ namespace Plugin {
 
     void WebKitBrowser::BridgeQuery(const string& message)
     {
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         event_bridgequery(message);
+#else
+        Exchange::JWebBrowser::Event::BridgeQuery(*this, message);
+#endif
+
     }
 
     void WebKitBrowser::CookieJarChanged()
@@ -290,7 +303,12 @@ namespace Plugin {
         TRACE(Trace::Information, (_T("StateChange: { \"State\": %d }"), state));
         string message(string("{ \"suspended\": ") + (state == PluginHost::IStateControl::SUSPENDED ? _T("true") : _T("false")) + string(" }"));
         _service->Notify(message);
+
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         event_statechange(state == PluginHost::IStateControl::SUSPENDED);
+#else
+        PluginHost::JStateControl::Event::StateChange(*this, state);
+#endif
     }
 
     void WebKitBrowser::Deactivated(RPC::IRemoteConnection* connection)
