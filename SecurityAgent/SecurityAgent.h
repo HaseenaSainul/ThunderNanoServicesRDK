@@ -22,8 +22,10 @@
 #include "Module.h"
 #include "AccessControlList.h"
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
 #include <interfaces/json/JSecurityAgent.h>
 #include <interfaces/json/JsonData_SecurityAgent.h>
+#endif
 
 namespace Thunder {
 namespace Plugin {
@@ -191,8 +193,8 @@ namespace Plugin {
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         // ISecurityAgent methods
         // -------------------------------------------------------------------------------------------------------
-        uint32_t CreateToken(const Exchange::ISecurityAgent::TokenInput& input, string& token) override;
-        uint32_t Validate(const string& token, bool& valid) override;
+        uint32_t CreateToken(const uint16_t bufferLength, const uint8_t buffer[], string& token) const;
+        uint32_t Validate(const string& token, bool& valid) const override;
 #endif
 
     private:

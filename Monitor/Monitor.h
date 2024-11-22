@@ -23,7 +23,10 @@
 #include "Module.h"
 #include <interfaces/IMemory.h>
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
 #include <interfaces/json/JMonitor.h>
+#endif
+
 #include <interfaces/json/JsonData_Monitor.h>
 #include <limits>
 #include <string>

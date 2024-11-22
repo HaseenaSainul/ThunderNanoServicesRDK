@@ -259,25 +259,18 @@ namespace Plugin {
     }
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-    /* virtual */ uint32_t SecurityAgent::CreateToken(const Exchange::ISecurityAgent::TokenInput& input, string& token)
+    /* virtual */ uint32_t SecurityAgent::CreateToken(const uint16_t bufferLength, const uint8_t buffer[], string& token) const
     {
         uint32_t result = Core::ERROR_NONE;
 
-        JsonData::SecurityAgent::CreateTokenParamsData::TokenInputData payload;
-        payload.Url = input.url;
-        payload.User = input.user;
-        payload.Hash = input.hash;
-        string strPayload;
-        payload.ToString(strPayload);
-
-        if (CreateToken(static_cast<uint16_t>(strPayload.length()), reinterpret_cast<const uint8_t*>(strPayload.c_str()), token) != Core::ERROR_NONE) {
+        if (const_cast<SecurityAgent*>(this)->CreateToken(bufferLength, buffer, token) != Core::ERROR_NONE) {
             result = Core::ERROR_GENERAL;
         }
 
         return result;
     }
 
-    /* virtual */ uint32_t SecurityAgent::Validate(const string& token, bool& valid)
+    /* virtual */ uint32_t SecurityAgent::Validate(const string& token, bool& valid) const
     {
         valid = false;
 
