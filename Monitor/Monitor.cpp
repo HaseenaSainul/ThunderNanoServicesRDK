@@ -136,7 +136,7 @@ namespace Plugin {
     }
     /* virtual */ Core::hresult Monitor::Reset(const string& callsign)
     {
-        if (callsign.empty() != false) {
+        if (callsign.empty() == false) {
             _monitor.Reset(callsign);
         }
         return Core::ERROR_NONE;
@@ -145,7 +145,7 @@ namespace Plugin {
     {
         std::list<string> observableList;
         _monitor.Observables(observableList);
-        if (observableList.empty() != false) {
+        if (observableList.empty() == false) {
             using Iterator = Exchange::IMonitor::IStringIterator;
             observables = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(observableList);
 	}

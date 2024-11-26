@@ -185,6 +185,7 @@ namespace Plugin {
                 intProfiles |= profile;
             }
 
+            ms12Profiles = static_cast<Exchange::IDeviceAudioCapabilities::MS12Profile>(intProfiles);
         }
 
         return (ms12Profiles ? Core::ERROR_NONE : Core::ERROR_GENERAL);
@@ -410,13 +411,13 @@ namespace Plugin {
                     }
 
                     Exchange::IDeviceAudioCapabilities::MS12Capability ms12Capabilities = Exchange::IDeviceAudioCapabilities::MS12CAPABILITY_NONE;
-                    if ((MS12Capabilities(audioOutput, ms12Capabilities) != Core::ERROR_NONE) &&
+                    if ((MS12Capabilities(audioOutput, ms12Capabilities) == Core::ERROR_NONE) &&
                         (ms12Capabilities != 0)) {
                         audioOutputCap.ms12Capabilities = ms12Capabilities;
                     }
 
                     Exchange::IDeviceAudioCapabilities::MS12Profile ms12Profiles = Exchange::IDeviceAudioCapabilities::MS12PROFILE_NONE;
-                    if ((MS12AudioProfiles(audioOutput, ms12Profiles) != Core::ERROR_NONE) &&
+                    if ((MS12AudioProfiles(audioOutput, ms12Profiles) == Core::ERROR_NONE) &&
                         (ms12Profiles != 0)) {
                         audioOutputCap.ms12Profiles = ms12Profiles;
                     }
@@ -595,7 +596,7 @@ namespace Plugin {
         system.serialNumber = const_cast<DeviceInfoImplementation*>(this)->DeviceIdentifier();
 
         PluginHost::ISubSystem* subSystem = _service->SubSystems();
-        if (subSystem == nullptr) {
+        if (subSystem != nullptr) {
             system.version = subSystem->Version() + _T("#") + subSystem->BuildTreeHash();
             subSystem->Release();
         }

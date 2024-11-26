@@ -1,11 +1,10 @@
 startmode = "@PLUGIN_DEVICEINFO_STARTMODE@"
 
 configuration = JSON()
-configuration.add("modelName", "@PLUGIN_DEVICEINFO_MODELNAME@")
-configuration.add("modelYear", "@PLUGIN_DEVICEINFO_MODELYEAR@")
-configuration.add("systemIntegratorName", "@PLUGIN_DEVICEINFO_SYSTEMINTEGRATORNAME@")
-configuration.add("friendlyName", "@PLUGIN_DEVICEINFO_FRIENDLYNAME@")
-configuration.add("platformName", "@PLUGIN_DEVICEINFO_PLATFORMNAME@")
+configuration.add("modelname", "@PLUGIN_DEVICEINFO_MODELNAME@")
+configuration.add("modelyear", "@PLUGIN_DEVICEINFO_MODELYEAR@")
+configuration.add("friendlyname", "@PLUGIN_DEVICEINFO_FRIENDLYNAME@")
+configuration.add("platformname", "@PLUGIN_DEVICEINFO_PLATFORMNAME@")
 
 root = JSON()
 root.add("mode", "Off")

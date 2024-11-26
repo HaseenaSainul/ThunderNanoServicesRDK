@@ -1826,9 +1826,6 @@ static GSourceFuncs _handlerIntervention =
 
         uint32_t State(const PluginHost::IStateControl::state state) override
         {
-            _adminLock.Lock();
-            _state = state;
-            _adminLock.Unlock();
             return Request(state == PluginHost::IStateControl::SUSPENDED ? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
         }
 
@@ -2143,8 +2140,8 @@ static GSourceFuncs _handlerIntervention =
             return Languages(array);
         }
 
-	uint32_t Languages(Core::JSON::ArrayType<Core::JSON::String>& array)
-	{
+        uint32_t Languages(Core::JSON::ArrayType<Core::JSON::String>& array)
+        {
             using SetLanguagesData = std::tuple<WebKitImplementation*, Core::JSON::ArrayType<Core::JSON::String> >;
             auto* data = new SetLanguagesData(this, array);
             g_main_context_invoke_full(
@@ -2156,8 +2153,11 @@ static GSourceFuncs _handlerIntervention =
                     ASSERT(object != nullptr);
                     Core::JSON::ArrayType<Core::JSON::String> array = std::get<1>(data);
 
+                    string language;
+                    array.ToString(language);
                     object->_adminLock.Lock();
                     object->_config.Languages = array;
+                    object->_config.Languages.ToString(language);
                     object->_adminLock.Unlock();
 
 #ifdef WEBKIT_GLIB_API
@@ -2200,14 +2200,15 @@ static GSourceFuncs _handlerIntervention =
         {
             std::list<string> languageList;
             _adminLock.Lock();
-	    Core::JSON::ArrayType<Core::JSON::String>::ConstIterator index(_config.Languages.Elements());
+            Core::JSON::ArrayType<Core::JSON::String>::ConstIterator index(_config.Languages.Elements());
             _adminLock.Unlock();
 
+            
             while (index.Next() == true) {
                 languageList.push_back(index.Current().Value().c_str());
             }
 
-	    if (languageList.empty() != false) {
+            if (languageList.empty() != true) {
                 using Iterator = Exchange::IWebBrowser::IStringIterator;
                 languages = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(languageList);
             }
@@ -2232,7 +2233,7 @@ static GSourceFuncs _handlerIntervention =
                 using Iterator = Exchange::IWebBrowser::IHeadersIterator;
                 
                 headers = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(_headersInfo);
-	    }
+            }
             _adminLock.Unlock();
             return (headers != nullptr ? Core::ERROR_NONE : Core::ERROR_UNAVAILABLE);
         }
@@ -2244,8 +2245,8 @@ static GSourceFuncs _handlerIntervention =
             if (headers) {
                 while (headers->Next(header) == true) {
                     headerList.push_back(header);
-		}
-	    }
+                }
+            }
 
             if ((_context != nullptr) && (headerList.empty() != true)) {
                 using SetHeadersData = std::tuple<WebKitImplementation*, HeaderInfoList>;
@@ -2267,13 +2268,13 @@ static GSourceFuncs _handlerIntervention =
 #ifdef WEBKIT_GLIB_API
                         Core::JSON::ArrayType<JsonData::WebBrowser::HeaderInfoInfo> jsonHeaders;
                         for (auto& header: headerList) {
-		            JsonData::WebBrowser::HeaderInfoInfo headerInfo;
-			    headerInfo.Name = header.name;
-			    headerInfo.Value = header.value;
+                            JsonData::WebBrowser::HeaderInfoInfo headerInfo;
+                            headerInfo.Name = header.name;
+                            headerInfo.Value = header.value;
                             jsonHeaders.Add() = headerInfo;
-			}
+                        }
                         string headers;
-			jsonHeaders.ToString(headers);
+                        jsonHeaders.ToString(headers);
 
                         webkit_web_view_send_message_to_page(object->_view,
                                 webkit_user_message_new(Tags::Headers, g_variant_new("s", headers.c_str())),
@@ -2296,7 +2297,6 @@ static GSourceFuncs _handlerIntervention =
             }
 
             return Core::ERROR_NONE;
-
         }
 #endif
 
