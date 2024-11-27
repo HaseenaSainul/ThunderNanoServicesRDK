@@ -88,7 +88,7 @@ if (ENABLE_LEGACY_INTERFACE_SUPPORT)
     target_sources(${MODULE_NAME}
         PRIVATE
         MonitorJsonRpc.cpp)
-    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
 endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES

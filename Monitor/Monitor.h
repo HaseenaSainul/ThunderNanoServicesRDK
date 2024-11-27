@@ -381,7 +381,9 @@ namespace Plugin {
 #endif
 
     private:
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         using Notifications = std::vector<Exchange::IMonitor::INotification*>;
+#endif
 
         Monitor(const Monitor&);
         Monitor& operator=(const Monitor&);
@@ -687,6 +689,20 @@ POP_WARNING()
             {
                 return (static_cast<uint32_t>(_monitor.size()));
             }
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+            inline void Update(
+                const string& observable,
+                const uint16_t restartWindow,
+                const uint8_t restartLimit)
+            {
+                MonitorObjectContainer::iterator index(_monitor.find(observable));
+                if (index != _monitor.end()) {
+                    index->second.UpdateRestartLimits(
+                        restartWindow,
+                        restartLimit);
+                }
+            }
+#else
             inline void RestartInfo(
                 const string& observable,
                 const Exchange::IMonitor::RestartInfo& restartInfo)
@@ -708,7 +724,7 @@ POP_WARNING()
                     restartInfo.limit = index->second.RestartLimit();
                 }
             }
-
+#endif
             inline void Open(PluginHost::IShell* service, Core::JSON::ArrayType<Config::Entry>::Iterator& index)
             {
                 ASSERT((service != nullptr) && (_service == nullptr));
