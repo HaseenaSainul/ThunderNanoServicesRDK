@@ -129,15 +129,13 @@ namespace Plugin {
     {
         ASSERT(_browser != nullptr);
 
-        PluginHost::IStateControl* stateControl(_browser->QueryInterface<PluginHost::IStateControl>());
-
         // In the mean time an out-of-process plugin might have crashed and thus return a nullptr.
-        if (stateControl != nullptr) {
+        if (_stateControl != nullptr) {
 
-            PluginHost::IStateControl::state currentState = stateControl->State();
-            response = (currentState == PluginHost::IStateControl::SUSPENDED? StateType::SUSPENDED : StateType::RESUMED);
-
-            stateControl->Release();
+            PluginHost::IStateControl::state state = PluginHost::IStateControl::UNINITIALIZED;
+            if (_stateControl->State(state) == Core::ERROR_NONE) {
+                response = (state == PluginHost::IStateControl::SUSPENDED? StateType::SUSPENDED : StateType::RESUMED);
+            }
         }
 
         return Core::ERROR_NONE;
@@ -153,14 +151,11 @@ namespace Plugin {
         uint32_t result = Core::ERROR_BAD_REQUEST;
 
         if (param.IsSet()) {
-            PluginHost::IStateControl* stateControl(_browser->QueryInterface<PluginHost::IStateControl>());
 
             // In the mean time an out-of-process plugin might have crashed and thus return a nullptr.
-            if (stateControl != nullptr) {
+            if (_stateControl != nullptr) {
 
-                stateControl->Request(param == StateType::SUSPENDED? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
-
-                stateControl->Release();
+               _stateControl->Request(param == StateType::SUSPENDED? PluginHost::IStateControl::SUSPEND : PluginHost::IStateControl::RESUME);
             }
 
             result = Core::ERROR_NONE;

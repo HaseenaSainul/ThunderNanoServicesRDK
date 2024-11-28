@@ -52,11 +52,11 @@ add_library(${MODULE_NAME} SHARED
         FrameworkRPC.cpp
         Module.cpp)
 
-if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
     target_sources(${MODULE_NAME}
         PRIVATE
         OCDMJsonRpc.cpp)
-    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)

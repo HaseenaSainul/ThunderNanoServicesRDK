@@ -40,7 +40,7 @@ find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 find_library(SECAPI NAMES ${SECAPI_LIB})
-if (SECAPI)
+if(SECAPI)
     set(SECAPI_RELATED_SOURCES SecapiToken.cpp)
 endif()
 
@@ -51,11 +51,11 @@ add_library(${MODULE_NAME} SHARED
     ${SECAPI_RELATED_SOURCES}
     Module.cpp)
 
-if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
     target_sources(${MODULE_NAME}
         PRIVATE
         SecurityAgentJsonRpc.cpp)
-    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
 endif()
 
 # Following compilation flag is added as SecurityAgent plugin uses regex that 
@@ -71,7 +71,7 @@ target_link_libraries(${MODULE_NAME}
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
-if (SECAPI)
+if(SECAPI)
     target_link_libraries(${MODULE_NAME} PRIVATE ${SECAPI_LIB})
     add_definitions(-DENABLE_SECAPI)
 endif()

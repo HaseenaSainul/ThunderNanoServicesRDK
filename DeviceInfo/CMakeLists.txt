@@ -34,6 +34,7 @@ if(BUILD_REFERENCE)
     add_definitions(-DBUILD_REFERENCE=${BUILD_REFERENCE})
 endif()
 
+
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
@@ -43,11 +44,11 @@ add_library(${MODULE_NAME} SHARED
     DeviceInfoImplementation.cpp
     Module.cpp)
 
-if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
     target_sources(${MODULE_NAME}
         PRIVATE
         DeviceInfoJsonRpc.cpp)
-    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
 endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES

@@ -21,16 +21,20 @@
 #define DEVICEINFO_DEVICEINFO_H
 
 #include "Module.h"
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#include <interfaces/IDeviceInfo.h>
+#include <interfaces/json/JsonData_DeviceInfo.h>
+#else
 #include <interfaces/json/JAddressMetadata.h>
-#include <interfaces/json/JDeviceInfo.h>
-#include <interfaces/json/JDeviceMetadata.h>
+#include <interfaces/json/JDeviceInfoExt.h>
 #include <interfaces/json/JDeviceAudioCapabilities.h>
 #include <interfaces/json/JDeviceVideoCapabilities.h>
+#include <interfaces/json/JDeviceMetadata.h>
 #include <interfaces/json/JImageMetadata.h>
 #include <interfaces/json/JSocketMetadata.h>
 #include <interfaces/json/JSystemMetadata.h>
-
 #include <interfaces/IConfiguration.h>
+#endif
 
 namespace Thunder {
 namespace Plugin {
@@ -126,11 +130,13 @@ namespace Plugin {
             , _deviceInfo(nullptr)
             , _deviceAudioCapabilityInterface(nullptr)
             , _deviceVideoCapabilityInterface(nullptr)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _addressMetadata(nullptr)
             , _deviceMetadata(nullptr)
             , _imageMetadata(nullptr)
             , _socketMetadata(nullptr)
             , _systemMetadata(nullptr)
+#endif
             , _connectionId(0)
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _adminLock()
@@ -145,6 +151,7 @@ namespace Plugin {
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(Exchange::IDeviceInfo, _deviceInfo)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_AGGREGATE(Exchange::IDeviceAudioCapabilities, _deviceAudioCapabilityInterface)
         INTERFACE_AGGREGATE(Exchange::IDeviceVideoCapabilities, _deviceVideoCapabilityInterface)
         INTERFACE_AGGREGATE(Exchange::IAddressMetadata, _addressMetadata)
@@ -152,7 +159,7 @@ namespace Plugin {
         INTERFACE_AGGREGATE(Exchange::IImageMetadata, _imageMetadata)
         INTERFACE_AGGREGATE(Exchange::ISocketMetadata, _socketMetadata)
         INTERFACE_AGGREGATE(Exchange::ISystemMetadata, _systemMetadata)
-
+#endif
         END_INTERFACE_MAP
 
     public:
@@ -241,11 +248,13 @@ namespace Plugin {
         Exchange::IDeviceInfo* _deviceInfo;
         Exchange::IDeviceAudioCapabilities* _deviceAudioCapabilityInterface;
         Exchange::IDeviceVideoCapabilities* _deviceVideoCapabilityInterface;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         Exchange::IAddressMetadata* _addressMetadata;
         Exchange::IDeviceMetadata* _deviceMetadata;
         Exchange::IImageMetadata* _imageMetadata;
         Exchange::ISocketMetadata* _socketMetadata;
         Exchange::ISystemMetadata* _systemMetadata;
+#endif
 
         uint32_t _connectionId;
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)

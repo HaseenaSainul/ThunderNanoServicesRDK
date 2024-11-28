@@ -1,20 +1,26 @@
 #pragma once
 
 #include "Module.h"
-#include <interfaces/IConfiguration.h>
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
 #include <interfaces/IDeviceInfo.h>
-
+#else
+#include <interfaces/IConfiguration.h>
+#include <interfaces/IDeviceInfoExt.h>
+#endif
 namespace Thunder {
 namespace Plugin {
-    class DeviceInfoImplementation : public Exchange::IDeviceInfo,
-                                     public Exchange::IDeviceAudioCapabilities,
-                                     public Exchange::IDeviceVideoCapabilities,
-                                     public Exchange::IAddressMetadata,
-                                     public Exchange::IDeviceMetadata,
-                                     public Exchange::IImageMetadata,
-                                     public Exchange::ISocketMetadata,
-                                     public Exchange::ISystemMetadata,
-                                     public Exchange::IConfiguration {
+    class DeviceInfoImplementation : public Exchange::IDeviceInfo
+                                     , public Exchange::IDeviceAudioCapabilities
+                                     , public Exchange::IDeviceVideoCapabilities
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+                                     , public Exchange::IAddressMetadata
+                                     , public Exchange::IDeviceMetadata
+                                     , public Exchange::IImageMetadata
+                                     , public Exchange::ISocketMetadata
+                                     , public Exchange::ISystemMetadata
+                                     , public Exchange::IConfiguration 
+#endif
+    {
     private:
         class Config : public Core::JSON::Container {
             using AudioCapabilitiesJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceAudioCapabilities::AudioCapability>>;
@@ -211,24 +217,28 @@ namespace Plugin {
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
         INTERFACE_ENTRY(Exchange::IDeviceAudioCapabilities)
         INTERFACE_ENTRY(Exchange::IDeviceVideoCapabilities)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(Exchange::IAddressMetadata)
         INTERFACE_ENTRY(Exchange::IDeviceMetadata)
         INTERFACE_ENTRY(Exchange::IImageMetadata)
         INTERFACE_ENTRY(Exchange::ISocketMetadata)
         INTERFACE_ENTRY(Exchange::ISystemMetadata)
         INTERFACE_ENTRY(Exchange::IConfiguration)
+#endif
         END_INTERFACE_MAP
 
-        uint32_t Configure(PluginHost::IShell* service) override;
-
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
-        Core::hresult AudioOutputs(IAudioOutputIterator*& res) const override;
-        Core::hresult AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
-        Core::hresult MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;
-        Core::hresult MS12AudioProfiles(const AudioOutput audioOutput, IMS12ProfileIterator*& ms12AudioProfiles) const override;
-        Core::hresult VideoOutputs(IVideoOutputIterator*& videoOutputs) const override;
-        Core::hresult Resolutions(const VideoOutput videoOutput, IScreenResolutionIterator*& resolutions) const override;
+        uint32_t Configure(const PluginHost::IShell* service) override;
+
+        uint32_t AudioOutputs(IAudioOutputIterator*& res) const override;
+        uint32_t AudioCapabilities(const AudioOutput audioOutput, IAudioCapabilityIterator*& audioCapabilities) const override;
+        uint32_t MS12Capabilities(const AudioOutput audioOutput, IMS12CapabilityIterator*& ms12Capabilities) const override;
+        uint32_t MS12AudioProfiles(const AudioOutput audioOutput, IMS12ProfileIterator*& ms12AudioProfiles) const override;
+        uint32_t VideoOutputs(IVideoOutputIterator*& videoOutputs) const override;
+        uint32_t Resolutions(const VideoOutput videoOutput, IScreenResolutionIterator*& resolutions) const override;
+
 #else
+        uint32_t Configure(PluginHost::IShell* service) override;
         Core::hresult AudioOutputs(AudioOutput& res) const override;
         Core::hresult AudioCapabilities(const AudioOutput audioOutput, AudioCapability& audioCapabilities) const override;
         Core::hresult MS12Capabilities(const AudioOutput audioOutput, MS12Capability& ms12Capabilities) const override;

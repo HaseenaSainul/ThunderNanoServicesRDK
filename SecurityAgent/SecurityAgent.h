@@ -24,8 +24,8 @@
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
 #include <interfaces/json/JSecurityAgent.h>
-#include <interfaces/json/JsonData_SecurityAgent.h>
 #endif
+#include <interfaces/json/JsonData_SecurityAgent.h>
 
 namespace Thunder {
 namespace Plugin {

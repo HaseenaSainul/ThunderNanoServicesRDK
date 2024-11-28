@@ -23,7 +23,11 @@
 #include "Module.h"
 #include <interfaces/IContentDecryption.h>
 #include <interfaces/IMemory.h>
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#include <interfaces/json/JsonData_OCDM.h>
+#else
 #include <interfaces/json/JOCDM.h>
+#endif
 
 namespace Thunder {
 namespace Plugin {
@@ -142,7 +146,9 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
             : _skipURL(0)
             , _connectionId(0)
             , _service(nullptr)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _ocdm(nullptr)
+#endif
             , _opencdmi(nullptr)
             , _memory(nullptr)
             , _notification(this)
@@ -202,7 +208,9 @@ POP_WARNING()
         uint8_t _skipURL;
         uint32_t _connectionId;
         PluginHost::IShell* _service;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         Exchange::IOCDM* _ocdm;
+#endif
         Exchange::IContentDecryption* _opencdmi;
         Exchange::IMemory* _memory;
         Core::SinkType<Notification> _notification;

@@ -57,11 +57,11 @@ if(ENABLE_STRICT_COMPILER_SETTINGS)
 endif()
 
 if(PLUGIN_DEVICEIDENTIFICATION)
-    add_subdirectory(DeviceIdentification)
+   add_subdirectory(DeviceIdentification)
 endif()
 
 if(PLUGIN_DEVICEINFO)
-    add_subdirectory(DeviceInfo)
+   add_subdirectory(DeviceInfo)
 endif()
 
 if(PLUGIN_DISPLAYINFO)

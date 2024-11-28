@@ -1559,7 +1559,9 @@ POP_WARNING()
         // -------------------------------------------------------------------------------------------------------------
         BEGIN_INTERFACE_MAP(OCDMImplementation)
         INTERFACE_ENTRY(Exchange::IContentDecryption)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(Exchange::IOCDM)
+#endif
         END_INTERFACE_MAP
 
     private:

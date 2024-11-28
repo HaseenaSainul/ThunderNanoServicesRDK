@@ -15,12 +15,18 @@ namespace Plugin {
 #endif
     using ResolutionJsonArray = Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDeviceVideoCapabilities::ScreenResolution>>;
 
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+    uint32_t DeviceInfoImplementation::Configure(const PluginHost::IShell* service)
+#else
     Core::hresult DeviceInfoImplementation::Configure(PluginHost::IShell* service)
+#endif
     {
         ASSERT(service != nullptr);
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         _service = service;
         _service->AddRef();
+#endif
 
         _config.FromString(service->ConfigLine());
 
@@ -389,6 +395,7 @@ namespace Plugin {
         return result;
     }
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
     Core::hresult DeviceInfoImplementation::DeviceAudioCapabilities(IAudioOutputCapsIterator*& audioOutputCaps) const
     {
         Exchange::IDeviceAudioCapabilities::AudioOutput audioOutputs;
@@ -609,6 +616,6 @@ namespace Plugin {
         socket.runs = Core::ResourceMonitor::Instance().Runs();
         return Core::ERROR_NONE;
     }
-
+#endif
 }
 }

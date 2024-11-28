@@ -154,11 +154,15 @@ namespace Plugin {
 
             if (_deviceInfo != nullptr){
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 Exchange::JDeviceInfo::Unregister(*this);
+#endif
                 if (_deviceAudioCapabilityInterface != nullptr) {
                     _deviceAudioCapabilityInterface->Release();
                     _deviceAudioCapabilityInterface = nullptr;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                     Exchange::JDeviceAudioCapabilities::Unregister(*this);
+#endif
                 }
                 if (_deviceVideoCapabilityInterface != nullptr) {
 #if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
@@ -170,6 +174,7 @@ namespace Plugin {
                     _deviceVideoCapabilityInterface = nullptr;
                 }
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                 if (_addressMetadata == nullptr) {
                     Exchange::JAddressMetadata::Unregister(*this);
                 }
@@ -185,6 +190,7 @@ namespace Plugin {
                 if (_systemMetadata == nullptr) {
                     Exchange::JSystemMetadata::Unregister(*this);
                 }
+#endif
 
                 RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
                 VARIABLE_IS_NOT_USED uint32_t result = _deviceInfo->Release();
