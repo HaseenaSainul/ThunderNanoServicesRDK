@@ -91,7 +91,7 @@ namespace Plugin {
 
     static const TCHAR BufferFileName[] = _T("ocdmbuffer.");
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
     class OCDMImplementation : public Exchange::IContentDecryption {
 #else
     class OCDMImplementation : public Exchange::IContentDecryption, public Exchange::IOCDM {
@@ -1538,7 +1538,7 @@ POP_WARNING()
             }
         }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         uint32_t Systems(Exchange::IOCDM::IStringIterator*& drms) const
         {
             drms = Systems();
@@ -1559,7 +1559,7 @@ POP_WARNING()
         // -------------------------------------------------------------------------------------------------------------
         BEGIN_INTERFACE_MAP(OCDMImplementation)
         INTERFACE_ENTRY(Exchange::IContentDecryption)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         INTERFACE_ENTRY(Exchange::IOCDM)
 #endif
         END_INTERFACE_MAP

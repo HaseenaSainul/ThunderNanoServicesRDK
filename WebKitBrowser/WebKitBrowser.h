@@ -30,7 +30,7 @@
 #include <interfaces/json/JBrowserCookieJar.h>
 #include <interfaces/json/JWebBrowser.h>
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/json/JsonData_StateControl.h>
 #include <interfaces/json/JsonData_WebKitBrowser.h>
 #else
@@ -226,7 +226,7 @@ namespace Plugin {
         void StateChange(const PluginHost::IStateControl::state state);
         void CookieJarChanged();
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         uint32_t DeleteDir(const string& path);
 
         // JsonRpc

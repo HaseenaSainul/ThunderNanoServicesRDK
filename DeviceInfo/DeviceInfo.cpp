@@ -39,7 +39,7 @@ namespace Plugin {
     /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
     {
         ASSERT(_service == nullptr);
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         ASSERT(_subSystem == nullptr);
 #endif
         ASSERT(_deviceInfo == nullptr);
@@ -53,7 +53,7 @@ namespace Plugin {
         _service = service;
         _service->AddRef();
         _service->Register(&_notification);
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         _subSystem = service->SubSystems();
 
         if (_subSystem == nullptr) {
@@ -69,7 +69,7 @@ namespace Plugin {
                 SYSLOG(Logging::Startup, (_T("DeviceInfo could not be instantiated")));
             } else {
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 _deviceInfo->Configure(_service);
 #else
                 Exchange::IConfiguration* configuration = _deviceInfo->QueryInterface<Exchange::IConfiguration>();
@@ -83,14 +83,14 @@ namespace Plugin {
                 if (_deviceAudioCapabilityInterface == nullptr) {
                     message = _T("DeviceInfo Audio Capabilities Interface could not be instantiated");
                 } else {
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                     Exchange::JDeviceAudioCapabilities::Register(*this, _deviceAudioCapabilityInterface);
 #endif
                     _deviceVideoCapabilityInterface = _deviceInfo->QueryInterface<Exchange::IDeviceVideoCapabilities>();
                     if (_deviceVideoCapabilityInterface == nullptr) {
                         message = _T("DeviceInfo Video Capabilities Interface could not be instantiated");
                     } else {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                         RegisterAll();
 #else
 
@@ -129,7 +129,7 @@ namespace Plugin {
                     }
                 }
             }
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         }
 #endif
 
@@ -144,7 +144,7 @@ namespace Plugin {
 
             _service->Unregister(&_notification);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             if (_subSystem != nullptr) {
                 _subSystem->Unregister(&_notification);
                 _subSystem->Release();
@@ -154,18 +154,18 @@ namespace Plugin {
 
             if (_deviceInfo != nullptr){
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                 Exchange::JDeviceInfo::Unregister(*this);
 #endif
                 if (_deviceAudioCapabilityInterface != nullptr) {
                     _deviceAudioCapabilityInterface->Release();
                     _deviceAudioCapabilityInterface = nullptr;
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                     Exchange::JDeviceAudioCapabilities::Unregister(*this);
 #endif
                 }
                 if (_deviceVideoCapabilityInterface != nullptr) {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                     UnregisterAll();
 #else
                     Exchange::JDeviceVideoCapabilities::Unregister(*this);
@@ -174,7 +174,7 @@ namespace Plugin {
                     _deviceVideoCapabilityInterface = nullptr;
                 }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                 if (_addressMetadata == nullptr) {
                     Exchange::JAddressMetadata::Unregister(*this);
                 }
@@ -219,7 +219,7 @@ namespace Plugin {
         return (string());
     }
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
     void DeviceInfo::SysInfo(JsonData::DeviceInfo::SysteminfoData& systemInfo) const
     {
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());

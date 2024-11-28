@@ -52,7 +52,7 @@ namespace Plugin {
         // During the registartion, all Plugins, currently active are reported to the sink.
         service->Register(&_monitor);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         RegisterAll();
 #else
         Exchange::JMonitor::Register(*this, this);
@@ -66,7 +66,7 @@ namespace Plugin {
     {
         ASSERT(service != nullptr);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         UnregisterAll();
 #else
         Exchange::JMonitor::Unregister(*this);
@@ -83,7 +83,7 @@ namespace Plugin {
         return (nullptr);
     }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
     void Monitor::NotifyAction(const string& callsign, const Exchange::IMonitor::INotification::action action, const string& reason)
     {
         _adminLock.Lock();

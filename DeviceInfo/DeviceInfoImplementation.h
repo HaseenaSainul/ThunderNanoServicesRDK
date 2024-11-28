@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Module.h"
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/IDeviceInfo.h>
 #else
 #include <interfaces/IConfiguration.h>
@@ -12,7 +12,7 @@ namespace Plugin {
     class DeviceInfoImplementation : public Exchange::IDeviceInfo
                                      , public Exchange::IDeviceAudioCapabilities
                                      , public Exchange::IDeviceVideoCapabilities
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                                      , public Exchange::IAddressMetadata
                                      , public Exchange::IDeviceMetadata
                                      , public Exchange::IImageMetadata
@@ -165,7 +165,7 @@ namespace Plugin {
         };
         using AudioOutputMap = std::map<Exchange::IDeviceAudioCapabilities::AudioOutput, AudioOutputCapability>;
         using AudioOutputList = std::list<Exchange::IDeviceAudioCapabilities::AudioOutput>;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         using AudioOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator>;
 #endif
 
@@ -176,7 +176,7 @@ namespace Plugin {
         };
         using VideoOutputMap = std::map<Exchange::IDeviceVideoCapabilities::VideoOutput, VideoOutputCapability>;
         using VideoOutputList = std::list<Exchange::IDeviceVideoCapabilities::VideoOutput>;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         using VideoOutputIteratorImplementation = RPC::IteratorType<Exchange::IDeviceVideoCapabilities::IVideoOutputIterator>;
 #endif
 
@@ -217,7 +217,7 @@ namespace Plugin {
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
         INTERFACE_ENTRY(Exchange::IDeviceAudioCapabilities)
         INTERFACE_ENTRY(Exchange::IDeviceVideoCapabilities)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         INTERFACE_ENTRY(Exchange::IAddressMetadata)
         INTERFACE_ENTRY(Exchange::IDeviceMetadata)
         INTERFACE_ENTRY(Exchange::IImageMetadata)
@@ -227,7 +227,7 @@ namespace Plugin {
 #endif
         END_INTERFACE_MAP
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         uint32_t Configure(const PluginHost::IShell* service) override;
 
         uint32_t AudioOutputs(IAudioOutputIterator*& res) const override;

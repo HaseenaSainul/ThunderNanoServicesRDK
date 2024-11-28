@@ -22,7 +22,7 @@
 #include "Module.h"
 #include "AccessControlList.h"
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
 #include <interfaces/json/JSecurityAgent.h>
 #endif
 #include <interfaces/json/JsonData_SecurityAgent.h>
@@ -32,7 +32,7 @@ namespace Plugin {
 
     class SecurityAgent : public PluginHost::IAuthenticate,
                           public PluginHost::IPlugin,
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                           public Exchange::ISecurityAgent,
 #endif
                           public PluginHost::JSONRPC {
@@ -190,7 +190,7 @@ namespace Plugin {
         uint32_t CreateToken(const uint16_t length, const uint8_t buffer[], string& token) override;
         PluginHost::ISecurity* Officer(const string& token) override;
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         // ISecurityAgent methods
         // -------------------------------------------------------------------------------------------------------
         uint32_t CreateToken(const uint16_t bufferLength, const uint8_t buffer[], string& token) const;
@@ -198,7 +198,7 @@ namespace Plugin {
 #endif
 
     private:
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         //   JsonRPC methods
         // -------------------------------------------------------------------------------------------------------
         void RegisterAll();

@@ -23,7 +23,7 @@
 #include "Module.h"
 #include <interfaces/IContentDecryption.h>
 #include <interfaces/IMemory.h>
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/json/JsonData_OCDM.h>
 #else
 #include <interfaces/json/JOCDM.h>
@@ -146,7 +146,7 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
             : _skipURL(0)
             , _connectionId(0)
             , _service(nullptr)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
             , _ocdm(nullptr)
 #endif
             , _opencdmi(nullptr)
@@ -164,7 +164,7 @@ POP_WARNING()
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(Exchange::IContentDecryption, _opencdmi)
         INTERFACE_AGGREGATE(Exchange::IMemory, _memory)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         INTERFACE_AGGREGATE(Exchange::IOCDM, _ocdm)
 #endif
         END_INTERFACE_MAP
@@ -194,7 +194,7 @@ POP_WARNING()
     private:
         void Deactivated(RPC::IRemoteConnection* process);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         bool KeySystems(const string& name, Core::JSON::ArrayType<Core::JSON::String>& response) const;
 
         // JsonRpc
@@ -208,7 +208,7 @@ POP_WARNING()
         uint8_t _skipURL;
         uint32_t _connectionId;
         PluginHost::IShell* _service;
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         Exchange::IOCDM* _ocdm;
 #endif
         Exchange::IContentDecryption* _opencdmi;

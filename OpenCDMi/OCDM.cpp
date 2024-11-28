@@ -123,7 +123,7 @@ namespace Plugin {
             if (_opencdmi == nullptr) {
                 message = _T("OCDM could not be instantiated.");
             } else {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 RegisterAll();
 #endif
                 _opencdmi->Initialize(_service);
@@ -141,7 +141,7 @@ namespace Plugin {
                 else {
                     message = _T("OCDM crashed at initialize!");
                 }
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                 _ocdm = _opencdmi->QueryInterface<Exchange::IOCDM>();
                 if (_ocdm == nullptr) {
                     SYSLOG(Logging::Startup, (_T("OCDM service is unavailable.")));
@@ -171,7 +171,7 @@ namespace Plugin {
 
                 _opencdmi->Deinitialize(service);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 UnregisterAll();
 #endif
 

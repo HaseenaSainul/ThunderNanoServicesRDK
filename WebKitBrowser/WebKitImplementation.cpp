@@ -29,7 +29,7 @@
 #include <interfaces/IBrowser.h>
 #include <interfaces/IApplication.h>
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
 #include <interfaces/json/JWebBrowser.h>
 #endif
 
@@ -398,7 +398,7 @@ static GSourceFuncs _handlerIntervention =
                                  public PluginHost::IStateControl,
                                  public PluginHost::ISubSystem::INotification {
     public:
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         using HeaderInfoList = std::list<Exchange::IWebBrowser::HeaderInfo>;
 #endif
 
@@ -901,7 +901,7 @@ static GSourceFuncs _handlerIntervention =
             , _dataPath()
             , _service(nullptr)
             , _headers()
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
             , _headersInfo()
 #endif
             , _localStorageEnabled(false)
@@ -2195,7 +2195,7 @@ static GSourceFuncs _handlerIntervention =
             return Core::ERROR_NONE;
         }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         uint32_t Languages(Exchange::IWebBrowser::IStringIterator*& languages) const override
         {
             std::list<string> languageList;
@@ -3840,7 +3840,7 @@ static GSourceFuncs _handlerIntervention =
         string _dataPath;
         PluginHost::IShell* _service;
         string _headers;
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         HeaderInfoList _headersInfo;
 #endif
         bool _localStorageEnabled;

@@ -21,7 +21,7 @@
 #define DEVICEINFO_DEVICEINFO_H
 
 #include "Module.h"
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/IDeviceInfo.h>
 #include <interfaces/json/JsonData_DeviceInfo.h>
 #else
@@ -45,11 +45,11 @@ namespace Plugin {
 
     private:
         class Notification : public RPC::IRemoteConnection::INotification
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                              , public PluginHost::ISubSystem::INotification
 #endif
         {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         private:
             class Job {
             public:
@@ -77,19 +77,19 @@ namespace Plugin {
 
             explicit Notification(DeviceInfo& parent)
                 : _parent(parent)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 , _job(parent)
 #endif
             {
             }
             ~Notification() override {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 _job.Revoke();
 #endif
             }
 
         public:
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             // Some changes happened in the subsystems
             void Updated() override {
                 _job.Submit();
@@ -104,7 +104,7 @@ namespace Plugin {
             }
 
             BEGIN_INTERFACE_MAP(Notification)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 INTERFACE_ENTRY(PluginHost::ISubSystem::INotification)
 #endif
                 INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
@@ -112,7 +112,7 @@ namespace Plugin {
 
         private:
             DeviceInfo& _parent;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             Core::WorkerPool::JobType<Job> _job;
 #endif
         };
@@ -123,14 +123,14 @@ namespace Plugin {
         DeviceInfo()
             : _skipURL(0)
             , _service(nullptr)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             , _subSystem(nullptr)
             , _deviceId()
 #endif
             , _deviceInfo(nullptr)
             , _deviceAudioCapabilityInterface(nullptr)
             , _deviceVideoCapabilityInterface(nullptr)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
             , _addressMetadata(nullptr)
             , _deviceMetadata(nullptr)
             , _imageMetadata(nullptr)
@@ -138,7 +138,7 @@ namespace Plugin {
             , _systemMetadata(nullptr)
 #endif
             , _connectionId(0)
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             , _adminLock()
 #endif
             , _notification(*this)
@@ -151,7 +151,7 @@ namespace Plugin {
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(Exchange::IDeviceInfo, _deviceInfo)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         INTERFACE_AGGREGATE(Exchange::IDeviceAudioCapabilities, _deviceAudioCapabilityInterface)
         INTERFACE_AGGREGATE(Exchange::IDeviceVideoCapabilities, _deviceVideoCapabilityInterface)
         INTERFACE_AGGREGATE(Exchange::IAddressMetadata, _addressMetadata)
@@ -170,7 +170,7 @@ namespace Plugin {
         virtual string Information() const override;
 
     private:
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         // JsonRpc
         void RegisterAll();
         void UnregisterAll();
@@ -241,14 +241,14 @@ namespace Plugin {
     private:
         uint8_t _skipURL;
         PluginHost::IShell* _service;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         PluginHost::ISubSystem* _subSystem;
         string _deviceId;
 #endif
         Exchange::IDeviceInfo* _deviceInfo;
         Exchange::IDeviceAudioCapabilities* _deviceAudioCapabilityInterface;
         Exchange::IDeviceVideoCapabilities* _deviceVideoCapabilityInterface;
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         Exchange::IAddressMetadata* _addressMetadata;
         Exchange::IDeviceMetadata* _deviceMetadata;
         Exchange::IImageMetadata* _imageMetadata;
@@ -257,7 +257,7 @@ namespace Plugin {
 #endif
 
         uint32_t _connectionId;
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         mutable Core::CriticalSection _adminLock;
 #endif
         Core::SinkType<Notification> _notification;

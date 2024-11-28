@@ -80,14 +80,14 @@ namespace Plugin {
         , _engine()
         , _testtoken()
     {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         RegisterAll();
 #endif
     }
 
     /* virtual */ SecurityAgent::~SecurityAgent()
     {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         UnregisterAll();
 #endif
     }
@@ -170,7 +170,7 @@ namespace Plugin {
                     subSystem->Release();
                 }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                 Exchange::JSecurityAgent::Register(*this, this);
 #endif
             }
@@ -196,7 +196,7 @@ namespace Plugin {
             Core::FileSystemMonitor::Instance().Unregister(&(*_dacDirCallback), _dacDir);
             _dacDirCallback.Release();
         }
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         Exchange::JSecurityAgent::Unregister(*this);
 #endif
         _dac.Clear();
@@ -258,7 +258,7 @@ namespace Plugin {
         return (result);
     }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
     /* virtual */ uint32_t SecurityAgent::CreateToken(const uint16_t bufferLength, const uint8_t buffer[], string& token) const
     {
         uint32_t result = Core::ERROR_NONE;

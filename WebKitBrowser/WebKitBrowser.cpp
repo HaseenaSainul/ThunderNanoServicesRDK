@@ -70,7 +70,7 @@ namespace Plugin {
             } else {
                 _application = _browser->QueryInterface<Exchange::IApplication>();
                 if (_application != nullptr) {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                     RegisterAll();
 #endif
                     Exchange::JWebBrowser::Register(*this, _browser);
@@ -98,7 +98,7 @@ namespace Plugin {
                         message = _T("WebKitBrowser Implementation could not be Configured.");
                     } else {
                         _stateControl->Register(&_notification);
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                         PluginHost::JStateControl::Register(*this, _stateControl);
 #endif
                     }
@@ -153,7 +153,7 @@ namespace Plugin {
                 _stateControl = _browser->QueryInterface<PluginHost::IStateControl>();
                 // In case WPE rpcprocess crashed, there is no access to the statecontrol interface, check it !!
                 if (_stateControl != nullptr) {
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
                     PluginHost::JStateControl::Unregister(*this);
 #endif
                     _stateControl->Unregister(&_notification);
@@ -178,7 +178,7 @@ namespace Plugin {
                     }
 
                     Exchange::JWebBrowser::Unregister(*this);
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                     UnregisterAll();
 #endif
                     _browser->Unregister(&_notification);
@@ -219,7 +219,7 @@ namespace Plugin {
         return { };
     }
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
     uint32_t WebKitBrowser::DeleteDir(const string& path)
     {
         uint32_t result = Core::ERROR_NONE;
@@ -284,7 +284,7 @@ namespace Plugin {
 
     void WebKitBrowser::BridgeQuery(const string& message)
     {
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         event_bridgequery(message);
 #else
         Exchange::JWebBrowser::Event::BridgeQuery(*this, message);
@@ -304,7 +304,7 @@ namespace Plugin {
         string message(string("{ \"suspended\": ") + (state == PluginHost::IStateControl::SUSPENDED ? _T("true") : _T("false")) + string(" }"));
         _service->Notify(message);
 
-#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         event_statechange(state == PluginHost::IStateControl::SUSPENDED);
 #else
         PluginHost::JStateControl::Event::StateChange(*this, state);
