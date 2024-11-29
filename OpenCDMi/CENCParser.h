@@ -21,7 +21,11 @@
 #define __CENCPARSER_H
 
 #include "Module.h"
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/IOCDM.h>
+#else
+#include <interfaces/IOCDMExt.h>
+#endif
 #include "Protobuf.h"
 
 namespace Thunder {

@@ -21,7 +21,11 @@
 #define __BROWSER_H
 
 #include "Module.h"
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/IBrowser.h>
+#else
+#include <interfaces/IBrowserExt.h>
+#endif
 #include <interfaces/IApplication.h>
 #include <interfaces/IMemory.h>
 

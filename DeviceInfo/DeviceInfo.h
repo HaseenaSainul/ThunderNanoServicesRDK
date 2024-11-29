@@ -26,7 +26,7 @@
 #include <interfaces/json/JsonData_DeviceInfo.h>
 #else
 #include <interfaces/json/JAddressMetadata.h>
-#include <interfaces/json/JDeviceInfoExt.h>
+#include <interfaces/json/JDeviceInfo.h>
 #include <interfaces/json/JDeviceAudioCapabilities.h>
 #include <interfaces/json/JDeviceVideoCapabilities.h>
 #include <interfaces/json/JDeviceMetadata.h>

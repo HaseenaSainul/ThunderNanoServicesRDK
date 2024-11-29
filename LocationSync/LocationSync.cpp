@@ -56,6 +56,9 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
         , _adminLock()
         , _timezoneoberservers()
         , _activateOnFailure(true)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        , _notifications()
+#endif
     {
     }
 POP_WARNING()
@@ -87,7 +90,11 @@ POP_WARNING()
 
             _sink.Initialize(config.Source.Value(), config.Interval.Value(), config.Retries.Value());
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             RegisterAll();
+#else
+            Exchange::JLocationSync::Register(*this, this);
+#endif
             Exchange::JTimeZone::Register(*this, this);
 
         } else {
@@ -103,7 +110,11 @@ POP_WARNING()
         if (_service != nullptr) {
             ASSERT(_service == service);
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             UnregisterAll();
+#else
+            Exchange::JLocationSync::Unregister(*this);
+#endif
             Exchange::JTimeZone::Unregister(*this);
 
             _sink.Deinitialize();
@@ -135,77 +146,6 @@ POP_WARNING()
     {
         // No additional info to report.
         return (string());
-    }
-
-    void LocationSync::Inbound(Web::Request& /* request */) /* override */
-    {
-    }
-
-    Core::ProxyType<Web::Response>
-    LocationSync::Process(const Web::Request& request) /* override */
-    {
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-        Core::TextSegmentIterator index(
-            Core::TextFragment(request.Path, _skipURL, static_cast<uint16_t>(request.Path.length()) - _skipURL),
-            false,
-            '/');
-
-        // By default, we assume everything works..
-        result->ErrorCode = Web::STATUS_OK;
-        result->Message = "OK";
-
-        if (request.Verb == Web::Request::HTTP_GET) {
-            Core::ProxyType<Web::JSONBodyType<Data>> response(jsonResponseFactory.Element());
-
-            PluginHost::ISubSystem* subSystem = _service->SubSystems();
-            ASSERT(subSystem != nullptr);
-
-            if (subSystem != nullptr) {
-                const PluginHost::ISubSystem::IInternet* internet(subSystem->Get<PluginHost::ISubSystem::IInternet>());
-
-                if (internet != nullptr) {
-                    response->PublicIp = internet->PublicIPAddress();
-
-                    const PluginHost::ISubSystem::ILocation* location(subSystem->Get<PluginHost::ISubSystem::ILocation>());
-
-                    if (location != nullptr) {
-                        response->TimeZone = location->TimeZone();
-                        response->Region = location->Region();
-                        response->Country = location->Country();
-                        response->City = location->City();
-
-                        location->Release();
-                    }
-
-                    result->ContentType = Web::MIMETypes::MIME_JSON;
-                    result->Body(Core::ProxyType<Web::IBody>(response));
-
-                    internet->Release();
-                } else {
-                    result->ErrorCode = Web::STATUS_SERVICE_UNAVAILABLE;
-                    result->Message = _T("Internet and Location Service not yet available");
-                }
-
-                subSystem->Release();
-            }
-        } else if (request.Verb == Web::Request::HTTP_POST) {
-            index.Next();
-            if (index.Next()) {
-                if ((index.Current() == "Sync") && (_source.empty() == false)) {
-                    uint32_t error = _sink.Probe(_source, 1, 1);
-
-                    if (error != Core::ERROR_NONE) {
-                        result->ErrorCode = Web::STATUS_INTERNAL_SERVER_ERROR;
-                        result->Message = _T("Probe failed with error code: ") + Core::NumberType<uint32_t>(error).Text();
-                    }
-                }
-            }
-        } else {
-            result->ErrorCode = Web::STATUS_BAD_REQUEST;
-            result->Message = _T("Unsupported request for the [LocationSync] service.");
-        }
-
-        return result;
     }
 
     uint32_t LocationSync::Register(Exchange::ITimeZone::INotification* sink) {
@@ -337,10 +277,20 @@ POP_WARNING()
             if ((_activateOnFailure == true) || (_sink.Location() == nullptr) || (_sink.Valid() == true)) { // again _sink.Location() == nullptr should not happen but added to make it backards compatibe
                 subSystem->Set(PluginHost::ISubSystem::INTERNET, _sink.Network());
                 SetLocationSubsystem(*subSystem, false);
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 event_locationchange();
+#else
+                LocationChange();
+#endif
+
             } else if (_timezoneoverriden == true) { // if the probing failed but the timezone was explicitely set we only set the location subsystem to pass on the timezone info
                 SetLocationSubsystem(*subSystem, false);
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 event_locationchange();
+#else
+                LocationChange();
+#endif
+
             }
             subSystem->Release();
         }
@@ -352,6 +302,91 @@ POP_WARNING()
             Core::SystemInfo::Instance().SetTimeZone(newtimezone, false);
         }
     }
+
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+    void LocationSync::LocationChange()
+    {
+        _adminLock.Lock();
+        for (auto* notification : _notifications) {
+            notification->LocationChange();
+        }
+        _adminLock.Unlock();
+    }
+
+    /* virtual */ Core::hresult LocationSync::Register(Exchange::ILocationSync::INotification* notification)
+    {
+        ASSERT(notification);
+
+        _adminLock.Lock();
+        auto item = std::find(_notifications.begin(), _notifications.end(), notification);
+        ASSERT(item == _notifications.end());
+        if (item == _notifications.end()) {
+            notification->AddRef();
+            _notifications.push_back(notification);
+        }
+        _adminLock.Unlock();
+
+        return Core::ERROR_NONE;
+    }
+    /* virtual */ Core::hresult LocationSync::Unregister(Exchange::ILocationSync::INotification* notification)
+    {
+        ASSERT(notification);
+
+        _adminLock.Lock();
+        auto item = std::find(_notifications.begin(), _notifications.end(), notification);
+        ASSERT(item != _notifications.end());
+        _notifications.erase(item);
+        (*item)->Release();
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+
+    /* virtual */ Core::hresult LocationSync::Location(Exchange::ILocationSync::Info& info) const
+    {
+        uint32_t status = Core::ERROR_UNAVAILABLE;
+
+        PluginHost::ISubSystem* subSystem = _service->SubSystems();
+        ASSERT(subSystem != nullptr);
+
+        if (subSystem != nullptr) {
+            const PluginHost::ISubSystem::IInternet* internet(subSystem->Get<PluginHost::ISubSystem::IInternet>());
+
+            if (internet != nullptr) {
+                info.publicip = internet->PublicIPAddress();
+
+                const PluginHost::ISubSystem::ILocation* location(subSystem->Get<PluginHost::ISubSystem::ILocation>());
+
+                if (location != nullptr) {
+                    info.timezone = location->TimeZone();
+                    info.region = location->Region();
+                    info.country = location->Country();
+                    info.city = location->City();
+
+                    location->Release();
+                }
+
+                status = Core::ERROR_NONE;
+                internet->Release();
+            }
+
+            subSystem->Release();
+        }
+
+        return status;
+    }
+
+    /* virtual */ Core::hresult LocationSync::Sync()
+    {
+        uint32_t result = Core::ERROR_NONE;
+
+        if (_source.empty() == false) {
+            result = _sink.Probe(_source, 1, 1);
+        } else {
+            result = Core::ERROR_GENERAL;
+        }
+        return result;
+    }
+#endif
 
 } // namespace Plugin
 } // namespace Thunder

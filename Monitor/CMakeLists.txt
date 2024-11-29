@@ -84,7 +84,7 @@ add_library(${MODULE_NAME} SHARED
     Monitor.cpp
     Module.cpp)
 
-if (ENABLE_LEGACY_INTERFACE_SUPPORT)
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
     target_sources(${MODULE_NAME}
         PRIVATE
         MonitorJsonRpc.cpp)

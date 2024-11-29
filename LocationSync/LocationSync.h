@@ -22,6 +22,9 @@
 
 #include "Module.h"
 #include "LocationService.h"
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#include <interfaces/json/JLocationSync.h>
+#endif
 #include <interfaces/json/JsonData_LocationSync.h>
 #include <interfaces/ITimeZone.h>
 
@@ -30,7 +33,12 @@
 namespace Thunder {
 namespace Plugin {
 
-    class LocationSync : public PluginHost::IPlugin, public Exchange::ITimeZone, public PluginHost::IWeb, public PluginHost::JSONRPC {
+    class LocationSync : public PluginHost::IPlugin,
+                         public Exchange::ITimeZone,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+                         public Exchange::ILocationSync,
+#endif
+                         public PluginHost::JSONRPC {
     public:
         class Data : public Core::JSON::Container {
         public:
@@ -65,6 +73,9 @@ namespace Plugin {
         };
 
     private:
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        using Notifications = std::vector<Exchange::ILocationSync::INotification*>;
+#endif
         class Notification : public Core::IDispatch {
         private:
             Notification() = delete;
@@ -248,7 +259,9 @@ POP_WARNING()
         // Build QueryInterface implementation, specifying all possible interfaces to be returned.
         BEGIN_INTERFACE_MAP(LocationSync)
             INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_ENTRY(PluginHost::IWeb)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        INTERFACE_ENTRY(Exchange::ILocationSync)
+#endif
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             INTERFACE_ENTRY(Exchange::ITimeZone)
         END_INTERFACE_MAP
@@ -260,11 +273,6 @@ POP_WARNING()
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
 
-        //   IWeb methods
-        // -------------------------------------------------------------------------------------------------------
-        void Inbound(Web::Request& request) override;
-        Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
-
         //   ITimeZone methods
         // -------------------------------------------------------------------------------------------------------
         uint32_t Register(ITimeZone::INotification* sink) override ;
@@ -272,15 +280,27 @@ POP_WARNING()
         uint32_t TimeZone(string& timeZone ) const override;
         uint32_t TimeZone(const string& timeZone) override;
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        // ILocationSync methods
+        // -------------------------------------------------------------------------------------------------------
+        Core::hresult Register(Exchange::ILocationSync::INotification* notification) override;
+        Core::hresult Unregister(Exchange::ILocationSync::INotification* notification) override;
+        Core::hresult Location(Exchange::ILocationSync::Info& info) const override;
+        Core::hresult Sync() override;
+        void LocationChange();
+#endif
+
     private:
         string CurrentTimeZone() const;
         void NotifyTimeZoneChanged(const string& timezone) const;
         void SetLocationSubsystem(PluginHost::ISubSystem& subsystem, bool update);
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         void RegisterAll();
         void UnregisterAll();
         uint32_t endpoint_sync();
         uint32_t get_location(JsonData::LocationSync::LocationData& response) const;
         void event_locationchange();
+#endif
 
         void SyncedLocation();
         void UpdateSystemTimeZone(const string& timezone);
@@ -297,6 +317,9 @@ POP_WARNING()
         mutable Core::CriticalSection _adminLock;
         TimeZoneObservers _timezoneoberservers;
         bool _activateOnFailure;
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        Notifications _notifications;
+#endif
     };
 
 } // namespace Plugin

@@ -44,8 +44,14 @@ add_library(${MODULE_NAME} SHARED
     Module.cpp
     LocationSync.cpp
     LocationService.cpp
-    LocationSyncJsonRpc.cpp
 )
+
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        LocationSyncJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
+endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11

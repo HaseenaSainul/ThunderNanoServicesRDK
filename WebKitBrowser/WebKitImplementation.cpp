@@ -26,7 +26,11 @@
 
 #include "Module.h"
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
 #include <interfaces/IBrowser.h>
+#else
+#include <interfaces/IBrowserExt.h>
+#endif
 #include <interfaces/IApplication.h>
 
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
