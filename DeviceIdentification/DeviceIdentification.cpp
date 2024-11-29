@@ -74,8 +74,11 @@ namespace Plugin {
 
             _deviceId = GetDeviceId();
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
             RegisterAll();
-
+#else
+            Exchange::JDeviceIdentification::Register(*this, this);
+#endif
             if (_deviceId.empty() != true) {
 #ifndef DISABLE_DEVICEID_CONTROL
                 service->SubSystems()->Set(PluginHost::ISubSystem::IDENTIFIER, _identifier);
@@ -107,8 +110,11 @@ namespace Plugin {
             }
             if (_identifier != nullptr) {
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
                 UnregisterAll();
-
+#else
+                Exchange::JDeviceIdentification::Unregister(*this);
+#endif
                 // Stop processing:
                 RPC::IRemoteConnection* connection = service->RemoteConnection(_connectionId);
 
@@ -179,6 +185,7 @@ namespace Plugin {
         return result;
     }
 
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
     void DeviceIdentification::Info(JsonData::DeviceIdentification::DeviceidentificationData& deviceInfo) const
     {
         ASSERT(_identifier != nullptr);
@@ -190,6 +197,19 @@ namespace Plugin {
         }
     }
 
+#else
+    Core::hresult DeviceIdentification::DeviceIdMetaData(Exchange::IDeviceIdentification::Info& info) const
+    {
+        ASSERT(_identifier != nullptr);
+
+        info.firmwareversion = _identifier->FirmwareVersion();
+        info.chipset = _identifier->Chipset();
+        if (_deviceId.empty() != true) {
+            info.deviceid = _deviceId;
+        }
+        return Core::ERROR_NONE;
+    }
+#endif
     void DeviceIdentification::Deactivated(RPC::IRemoteConnection* connection)
     {
         // This can potentially be called on a socket thread, so the deactivation (wich in turn kills this object) must be done

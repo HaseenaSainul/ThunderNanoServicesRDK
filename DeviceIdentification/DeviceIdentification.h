@@ -20,12 +20,22 @@
 #pragma once
 
 #include "Module.h"
+
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#include <interfaces/json/JDeviceIdentification.h>
+#endif
+
 #include <interfaces/json/JsonData_DeviceIdentification.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class DeviceIdentification : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+    class DeviceIdentification : public PluginHost::IPlugin,
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        public Exchange::IDeviceIdentification,
+#endif
+        public PluginHost::JSONRPC {
+
     public:
         DeviceIdentification(const DeviceIdentification&) = delete;
         DeviceIdentification& operator=(const DeviceIdentification&) = delete;
@@ -78,6 +88,9 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(DeviceIdentification)
         INTERFACE_ENTRY(PluginHost::IPlugin)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        INTERFACE_ENTRY(Exchange::IDeviceIdentification)
+#endif
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         END_INTERFACE_MAP
 
@@ -88,13 +101,19 @@ namespace Plugin {
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
 
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+        // IDeviceIdentification method
+        Core::hresult DeviceIdMetaData(Info& info) const override;
+#endif
+
     private:
+#if ENABLE_LEGACY_INTERFACE_SUPPORT
         void RegisterAll();
         void UnregisterAll();
         uint32_t get_deviceidentification(JsonData::DeviceIdentification::DeviceidentificationData& response) const;
-
-        string GetDeviceId() const;
         void Info(JsonData::DeviceIdentification::DeviceidentificationData&) const;
+#endif
+        string GetDeviceId() const;
 
         void Deactivated(RPC::IRemoteConnection* connection);
 

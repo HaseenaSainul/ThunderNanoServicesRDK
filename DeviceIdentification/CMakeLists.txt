@@ -52,8 +52,14 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     DeviceIdentification.cpp
-    DeviceIdentificationJsonRpc.cpp
     Module.cpp)
+
+if(ENABLE_LEGACY_INTERFACE_SUPPORT)
+    target_sources(${MODULE_NAME}
+        PRIVATE
+        DeviceIdentificationJsonRpc.cpp)
+    add_definitions(-DENABLE_LEGACY_INTERFACE_SUPPORT=ON)
+endif()
 
 if (PLUGIN_DEVICEIDENTIFICATION_USE_MFR AND MFRFWLIBS_FOUND)
     target_sources(${MODULE_NAME}
