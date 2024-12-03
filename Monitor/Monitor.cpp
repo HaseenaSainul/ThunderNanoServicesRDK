@@ -52,9 +52,10 @@ namespace Plugin {
         // During the registartion, all Plugins, currently active are reported to the sink.
         service->Register(&_monitor);
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         RegisterAll();
 #else
+        Register(&_notification);
         Exchange::JMonitor::Register(*this, this);
 #endif
 
@@ -66,9 +67,10 @@ namespace Plugin {
     {
         ASSERT(service != nullptr);
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         UnregisterAll();
 #else
+        Unregister(&_notification);
         Exchange::JMonitor::Unregister(*this);
 #endif
 
@@ -83,7 +85,7 @@ namespace Plugin {
         return (nullptr);
     }
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
     void Monitor::NotifyAction(const string& callsign, const Exchange::IMonitor::INotification::action action, const string& reason)
     {
         _adminLock.Lock();
@@ -136,7 +138,7 @@ namespace Plugin {
     }
     /* virtual */ Core::hresult Monitor::Reset(const string& callsign)
     {
-        if (callsign.empty() == false) {
+        if (callsign.empty() != false) {
             _monitor.Reset(callsign);
         }
         return Core::ERROR_NONE;
@@ -145,7 +147,7 @@ namespace Plugin {
     {
         std::list<string> observableList;
         _monitor.Observables(observableList);
-        if (observableList.empty() == false) {
+        if (observableList.empty() != false) {
             using Iterator = Exchange::IMonitor::IStringIterator;
             observables = Core::ServiceType<RPC::IteratorType<Iterator>>::Create<Iterator>(observableList);
 	}

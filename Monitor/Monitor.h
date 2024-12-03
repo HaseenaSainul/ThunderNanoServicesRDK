@@ -23,7 +23,7 @@
 #include "Module.h"
 #include <interfaces/IMemory.h>
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
 #include <interfaces/json/JMonitor.h>
 #endif
 
@@ -40,7 +40,7 @@ namespace Thunder {
 namespace Plugin {
 
     class Monitor : public PluginHost::IPlugin,
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                     public Exchange::IMonitor,
 #endif
                     public PluginHost::JSONRPC {
@@ -154,7 +154,7 @@ namespace Plugin {
             Core::MeasurementType<uint8_t> _process;
         };
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         class Data : public Core::JSON::Container {
         public:
             class MetaData : public Core::JSON::Container {
@@ -381,8 +381,32 @@ namespace Plugin {
 #endif
 
     private:
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         using Notifications = std::vector<Exchange::IMonitor::INotification*>;
+        class Notification : public Exchange::IMonitor::INotification {
+        public:
+            Notification() = delete;
+            Notification(const Notification&) = delete;
+            Notification& operator=(const Notification&) = delete;
+
+            Notification(Monitor* monitor)
+            : _monitor(monitor)
+            {
+            }
+
+            ~Notification() override = default;
+
+            void Action(const string& callsign, const action value, const string& reason) override
+            {
+                Exchange::JMonitor::Event::Action(*_monitor, callsign, value, reason);
+            }
+            BEGIN_INTERFACE_MAP(Notification)
+            INTERFACE_ENTRY(Exchange::IMonitor::INotification)
+            END_INTERFACE_MAP
+
+        private:
+            Monitor* _monitor;
+        };
 #endif
 
         Monitor(const Monitor&);
@@ -689,20 +713,6 @@ POP_WARNING()
             {
                 return (static_cast<uint32_t>(_monitor.size()));
             }
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
-            inline void Update(
-                const string& observable,
-                const uint16_t restartWindow,
-                const uint8_t restartLimit)
-            {
-                MonitorObjectContainer::iterator index(_monitor.find(observable));
-                if (index != _monitor.end()) {
-                    index->second.UpdateRestartLimits(
-                        restartWindow,
-                        restartLimit);
-                }
-            }
-#else
             inline void RestartInfo(
                 const string& observable,
                 const Exchange::IMonitor::RestartInfo& restartInfo)
@@ -724,7 +734,7 @@ POP_WARNING()
                     restartInfo.limit = index->second.RestartLimit();
                 }
             }
-#endif
+
             inline void Open(PluginHost::IShell* service, Core::JSON::ArrayType<Config::Entry>::Iterator& index)
             {
                 ASSERT((service != nullptr) && (_service == nullptr));
@@ -817,7 +827,7 @@ POP_WARNING()
                             TRACE(Trace::Fatal, (_T("Giving up restarting of %s: Failed more than %d times within %d seconds."), callsign.c_str(), restartlimit, restartwindow));
                             const string message("{\"callsign\": \"" + callsign + "\", \"action\": \"Restart\", \"reason\":\"" + (std::to_string(restartlimit)).c_str() + " Attempts Failed within the restart window\"}");
                             _service->Notify(message);
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "StoppedRestaring", std::to_string(index->second.RestartLimit()) + " attempts failed within the restart window");
 #else
                             _parent.NotifyAction(callsign, Exchange::IMonitor::INotification::RESTARTING_IS_STOPPED, std::to_string(index->second.RestartLimit()) + " attempts failed within the restart window");
@@ -825,7 +835,7 @@ POP_WARNING()
                         } else {
                             const string message("{\"callsign\": \"" + callsign + "\", \"action\": \"Activate\", \"reason\": \"Automatic\" }");
                             _service->Notify(message);
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                             _parent.event_action(callsign, "Activate", "Automatic");
 #else
                             _parent.NotifyAction(callsign, Exchange::IMonitor::INotification::ACTIVATE, "Automatic");
@@ -839,7 +849,7 @@ POP_WARNING()
             void Unavailable(const string&, PluginHost::IShell*) override
             {
             }
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             void Snapshot(Core::JSON::ArrayType<Monitor::Data>& snapshot) const
             {
                 MonitorObjectContainer::const_iterator element(_monitor.cbegin());
@@ -1006,7 +1016,7 @@ POP_WARNING()
 
                                 _service->Notify(message);
 
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
                                 _parent.event_action(plugin->Callsign(), "Deactivate", why.Data());
 #else
                                 _parent.NotifyAction(plugin->Callsign(), Exchange::IMonitor::INotification::DEACTIVATE, why.Data());
@@ -1041,7 +1051,7 @@ POP_WARNING()
 
         private:
             template <typename T>
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             void translate(const Core::MeasurementType<T>& from, JsonData::Monitor::MeasurementInfo* to) const
             {
                 ASSERT(to != nullptr);
@@ -1076,8 +1086,9 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
         Monitor()
             : _skipURL(0)
             , _monitor(this)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
             , _notifications()
+            , _notification(this)
             , _adminLock()
 #endif
         {
@@ -1087,7 +1098,7 @@ POP_WARNING()
 
         BEGIN_INTERFACE_MAP(Monitor)
         INTERFACE_ENTRY(PluginHost::IPlugin)
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         INTERFACE_ENTRY(Exchange::IMonitor)
 #endif
         INTERFACE_ENTRY(PluginHost::IDispatcher)
@@ -1115,7 +1126,7 @@ POP_WARNING()
         // to this plugin. This Metadata can be used by the MetData plugin to publish this information to the ouside world.
         string Information() const override;
 
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         // IMonitor methods
         Core::hresult Register(Exchange::IMonitor::INotification* notification) override;
         Core::hresult Unregister(Exchange::IMonitor::INotification* notification) override;
@@ -1133,13 +1144,14 @@ POP_WARNING()
         uint8_t _skipURL;
         Config _config;
         Core::SinkType<MonitorObjects> _monitor;
-#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
+#if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         Notifications _notifications;
+        Core::SinkType<Notification> _notification;
         mutable Core::CriticalSection _adminLock;
 #endif
 
     private:
-#if ENABLE_LEGACY_INTERFACE_SUPPORT
+#if defined(ENABLE_LEGACY_INTERFACE_SUPPORT)
         void RegisterAll();
         void UnregisterAll();
         uint32_t endpoint_restartlimits(const JsonData::Monitor::RestartlimitsParamsData& params);
