@@ -75,16 +75,41 @@ namespace Plugin {
     private:
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         using Notifications = std::vector<Exchange::ILocationSync::INotification*>;
-#endif
-        class Notification : public Core::IDispatch {
-        private:
+        class Notification : public Exchange::ILocationSync::INotification {
+        public:
             Notification() = delete;
             Notification(const Notification&) = delete;
             Notification& operator=(const Notification&) = delete;
 
+            Notification(LocationSync* locationSync)
+            : _locationSync(locationSync)
+            {
+            }
+
+            ~Notification() override = default;
+
+            void LocationChange() override
+            {
+                Exchange::JLocationSync::Event::LocationChange(*_locationSync);
+            }
+            BEGIN_INTERFACE_MAP(Notification)
+            INTERFACE_ENTRY(Exchange::ILocationSync::INotification)
+            END_INTERFACE_MAP
+
+        private:
+            LocationSync* _locationSync;
+        };
+
+#endif
+        class Sink : public Core::IDispatch {
+        private:
+            Sink() = delete;
+            Sink(const Sink&) = delete;
+            Sink& operator=(const Sink&) = delete;
+
         public:
 PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
-            explicit Notification(LocationSync* parent)
+            explicit Sink(LocationSync* parent)
                 : _parent(*parent)
                 , _source()
                 , _interval()
@@ -94,7 +119,7 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
                 ASSERT(parent != nullptr);
             }
 POP_WARNING()
-            ~Notification()
+            ~Sink()
             {
                 ASSERT(_locator != nullptr);
                 _locator->Release();
@@ -310,7 +335,7 @@ POP_WARNING()
 
         uint16_t _skipURL;
         string _source;
-        Core::SinkType<Notification> _sink;
+        Core::SinkType<Sink> _sink;
         PluginHost::IShell* _service;
         bool _timezoneoverriden;
         Core::SinkType<LocationInfo> _locationinfo;
@@ -319,6 +344,7 @@ POP_WARNING()
         bool _activateOnFailure;
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         Notifications _notifications;
+        Core::SinkType<Notification> _notification;
 #endif
     };
 

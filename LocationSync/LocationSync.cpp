@@ -58,6 +58,7 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
         , _activateOnFailure(true)
 #if !defined(ENABLE_LEGACY_INTERFACE_SUPPORT) || (ENABLE_LEGACY_INTERFACE_SUPPORT == 0)
         , _notifications()
+        , _notification(this)
 #endif
     {
     }
@@ -93,6 +94,7 @@ POP_WARNING()
 #if ENABLE_LEGACY_INTERFACE_SUPPORT
             RegisterAll();
 #else
+            Register(&_notification);
             Exchange::JLocationSync::Register(*this, this);
 #endif
             Exchange::JTimeZone::Register(*this, this);
@@ -113,6 +115,7 @@ POP_WARNING()
 #if ENABLE_LEGACY_INTERFACE_SUPPORT
             UnregisterAll();
 #else
+            Unregister(&_notification);
             Exchange::JLocationSync::Unregister(*this);
 #endif
             Exchange::JTimeZone::Unregister(*this);
